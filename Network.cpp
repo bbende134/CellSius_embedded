@@ -1,0 +1,87 @@
+#include "Network.h"
+#include "addons/TokenHelper.h"
+
+#define API_KEY "AIzaSyAHjkFGALD1RHc0IVNz8pPhM_HrjqqsPOA"
+#define FIREBASE_PROJECT_ID "test-600f6"
+#define USER_EMAIL "admin@admin.com"
+#define USER_PASSWORD "admin1234"
+
+#define WIFI_SSID "VOL_25"
+#define WIFI_PASSWORD "135792468"
+
+StaticJsonDocument<200> jsonBuffer;
+
+static Network *instance = NULL;
+
+Network::Network() {
+  instance = this;
+}
+
+void Network::initWiFi() {
+  WiFi.disconnect();
+  WiFi.mode(WIFI_STA);
+
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+  multi.addAP(WIFI_SSID, WIFI_PASSWORD);
+  multi.run();
+#else
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+#endif
+
+  Serial.print("Connecting to Wi-Fi");
+  unsigned long ms = millis();
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(300);
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+    if (millis() - ms > 10000)
+      break;
+#endif
+  }
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
+}
+
+void Network::firebaseInit() {
+  Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
+
+  /* Assign the api key (required) */
+  config.api_key = API_KEY;
+
+  /* Assign the user sign in credentials */
+  auth.user.email = USER_EMAIL;
+  auth.user.password = USER_PASSWORD;
+
+  // The WiFi credentials are required for Pico W
+  // due to it does not have reconnect feature.
+
+  /* Assign the callback function for the long running token generation task */
+  config.token_status_callback = tokenStatusCallback;  // see addons/TokenHelper.h
+
+  // Comment or pass false value when WiFi reconnection will control by your code or third party library e.g. WiFiManager
+  Firebase.reconnectNetwork(true);
+  // Since v4.4.x, BearSSL engine was used, the SSL buffer need to be set.
+  // Large data transmission may require larger RX buffer, otherwise connection issue or data read time out can be occurred.
+  fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
+
+  // Limit the size of response payload to be collected in FirebaseData
+  fbdo.setResponseSize(2048);
+
+  Firebase.begin(&config, &auth);
+}
+
+String Network::getTemperatureData(String documentPath, String mask) {
+  FirebaseJsonData result;
+  if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), mask.c_str())) {
+    //getting only temp data from received data
+    FirebaseJson thermostatJSON(fbdo.payload().c_str());
+    thermostatJSON.get(result, "fields/temp/stringValue");
+    return result.to<String>();
+
+  } else {
+    Serial.println("Couldn't receive data");
+    return "None";
+  }
+}
