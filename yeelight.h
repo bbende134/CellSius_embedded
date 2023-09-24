@@ -18,8 +18,9 @@ smaucourt@gmail.com - 11/11/2018
 #ifndef Yeelight_h
 #define Yeelight_h
 
-class Yeelight
-{
+class Yeelight {
+  String _IP;
+  uint16_t _port;
 public:
   Yeelight(String IP, uint16_t port);
   ~Yeelight();
@@ -29,9 +30,11 @@ public:
   bool setRGB(int red, int green, int blue, String effect, int duration);
   bool setColorTemp(int temperature, String effect, int duration);
   bool setBrightness(int brightness, String effect, int duration);
-  bool toggle() ;
+  bool on();
+  bool toggle();
   String getLocation();
   String getSupport();
+  String getIP();
   bool isPowered();
   String sendCommand(String method, String params);
 private:

@@ -26,5 +26,7 @@ public:
   void initWiFi();
   void firebaseInit();
   String getTemperatureData(String documentPath, String mask);
+  std::vector<String> getBulbs(String documentPath);
+  bool firebaseReady();
   // void firestoreDataUpdate(double temp, double humi);
 };

@@ -1,3 +1,4 @@
+#include <vector>
 #include "Network.h"
 #include "addons/TokenHelper.h"
 
@@ -11,7 +12,7 @@
 
 StaticJsonDocument<200> jsonBuffer;
 
-static Network *instance = NULL;
+static Network* instance = NULL;
 
 Network::Network() {
   instance = this;
@@ -72,12 +73,35 @@ void Network::firebaseInit() {
   Firebase.begin(&config, &auth);
 }
 
+bool Network::firebaseReady() {
+  return Firebase.ready();
+}
+
+std::vector<String> Network::getBulbs(String documentPath) {
+  FirebaseJsonData bulb;
+  int count = 1;
+  String mask = "bulb1";
+  std::vector<String> bulbs;
+
+  if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str())) {
+    FirebaseJson resultJSON(fbdo.payload().c_str());
+
+    while (resultJSON.get(bulb, "fields/"+mask + "/stringValue")) {
+      bulbs.push_back(bulb.to<String>());
+      mask.remove(4);
+      mask = mask + String(++count);
+    }
+    return bulbs;
+    
+  }else return bulbs;
+}
+
 String Network::getTemperatureData(String documentPath, String mask) {
   FirebaseJsonData result;
   if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), mask.c_str())) {
     //getting only temp data from received data
-    FirebaseJson thermostatJSON(fbdo.payload().c_str());
-    thermostatJSON.get(result, "fields/temp/stringValue");
+    FirebaseJson resultJSON(fbdo.payload().c_str());
+    resultJSON.get(result, "fields/" + mask + "/stringValue");
     return result.to<String>();
 
   } else {

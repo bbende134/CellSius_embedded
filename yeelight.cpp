@@ -39,8 +39,8 @@ uint16_t _port;
 uint16_t _cmdid = 0;
 
 Yeelight::Yeelight(String IP, uint16_t port) {
-  _IP = IP;
-  _port = port;
+  this->_IP = IP;
+  this->_port = port;
 }
 
 
@@ -137,6 +137,7 @@ bool Yeelight::setBrightness(int brightness, String effect, int duration) {
 
   String command = String("") +"{\"id\":"+ (++_cmdid)+",\"method\":\"set_bright\",\"params\":[" + String(brightness) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
   if (_client.connect(_IP, _port)) {
+    Serial.println("Setting bright for: "+_IP);
     _client.println(command);
     return true;
   } else return false;
@@ -150,6 +151,14 @@ bool Yeelight::testConnection() {
     _client.println(command1);
     delay(1000);
     _client.println(command2);
+    return true;
+  } else return false;
+}
+
+bool Yeelight::on() {
+  String command = String("") +"{ \"id\": "+ (++_cmdid)+", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
+  if (_client.connect(_IP, _port)) {
+    _client.println(command);
     return true;
   } else return false;
 }
@@ -172,9 +181,14 @@ bool Yeelight::isPowered() {
   return _powered;
 }
 
+String Yeelight::getIP() {
+  return _IP;
+}
+
 String Yeelight::getSupport() {
   return _support;
 }
+
 
 String Yeelight::getLocation() {
   return _location;

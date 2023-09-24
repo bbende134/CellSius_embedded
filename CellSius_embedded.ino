@@ -17,9 +17,11 @@
 #include "Network.h"
 #include "yeelight.h"
 
+
 #define LED 2
 
-Yeelight* yeelight;
+std::vector<Yeelight*> bulbs;
+std::vector<String> IPs;
 Network* network;
 
 unsigned long dataMillis = 0;
@@ -37,16 +39,27 @@ void setup() {
   // Init of network and firebase
   initNetwork();
   network->firebaseInit();
+
+
+  IPs = network->getBulbs("home_1/bulbs");
+
+  for (int i = 0; i < IPs.size(); i++) {
+    bulbs.push_back(new Yeelight(IPs[i], 55443));
+    Serial.println("IPs ------- : " + IPs[i]);
+  }
+
   // Init of yeelight
-  yeelight = new Yeelight("172.20.10.3", 55443);
-  yeelight->setBrightness(50, "smooth", 1000);
+  for (Yeelight* bulb : bulbs) {
+    Serial.println("getIPs ------- : " + bulb->getIP());
+    bulb->on();
+  }
 }
 
 void loop() {
 
   // Firebase.ready() should be called repeatedly to handle authentication tasks.
 
-  if ((millis() - dataMillis > 5000 || dataMillis == 0)) {
+  if (network->firebaseReady() && (millis() - dataMillis > 10000 || dataMillis == 0)) {
     dataMillis = millis();
 
     String documentPath = "home_1/set_thermostat_temp";
@@ -61,20 +74,32 @@ void loop() {
     if (temp > old_temp) {
       Serial.println("Its getting hot");
       digitalWrite(LED, HIGH);
-      yeelight->setColorTemp(1800, "smooth", 1000);
+      for (Yeelight* bulb : bulbs) {
+        Serial.println("getIPs ------- : " + bulb->getIP());
+        bulb->setColorTemp(1800, "smooth", 1000);
+      }
+
       digitalWrite(LED, LOW);
 
 
     } else if (temp < old_temp) {
       Serial.println("Its getting cold");
       digitalWrite(LED, HIGH);
-      yeelight->setRGB(100, 100, 255, "smooth", 1000);
+      for (Yeelight* bulb : bulbs) {
+        Serial.println("getIPs ------- : " + bulb->getIP());
+        bulb->setRGB(150, 150, 255, "smooth", 1000);
+      }
+
       digitalWrite(LED, LOW);
 
     } else {
       Serial.println("everything stays the same");
       digitalWrite(LED, HIGH);
-      yeelight->setColorTemp(4000, "smooth", 1000);
+      for (Yeelight* bulb : bulbs) {
+        Serial.println("getIPs ------- : " + bulb->getIP());
+        bulb->setColorTemp(4000, "smooth", 1000);
+      }
+
       digitalWrite(LED, LOW);
     }
     old_temp = temp;
