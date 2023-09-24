@@ -24,7 +24,6 @@ smaucourt@gmail.com - 11/11/2018
 
 #include <WiFiUdp.h>
 #include "yeelight.h"
-
 WiFiUDP _udp;
 WiFiClient _client;
 IPAddress _ipMulti(239, 255, 255, 250);
@@ -75,6 +74,8 @@ int Yeelight::feedback() {
 
 void Yeelight::parseFeedback(char* buffer, size_t len) {
   int i = 0, _i = 0;
+  Serial.print("buffer: ");
+  Serial.println(buffer);
   char _b[255];
   while (i < len) {
     if (buffer[i] == '\r' && i + 1 <= len && buffer[i + 1] == '\n') {
@@ -82,14 +83,16 @@ void Yeelight::parseFeedback(char* buffer, size_t len) {
 
       // ----
       String _str = String(_b);
-      // if (_str.startsWith("Location: yeelight://")) {
-      //   int colon = _str.indexOf(':', 21) + 1;
-      //   _location = _str.substring(10);
-      //   _str.substring(21, colon).toCharArray(_server, colon - 21);
-      //   _port = _str.substring(colon).toInt();
-      // }
+      if (_str.startsWith("Location: yeelight://")) {
+        int colon = _str.indexOf(':', 21) + 1;
+        _location = _str.substring(10);
+        _str.substring(21, colon).toCharArray(_server, colon - 21);
+        _port = _str.substring(colon).toInt();
+      }
       if (_str.startsWith("support: ")) {
         _support = _str.substring(9);
+        Serial.print("Support: ");
+        Serial.println(_support);
       }
       if (_str.startsWith("power: ")) {
         _powered = _str.substring(7) == "on";
@@ -107,7 +110,7 @@ void Yeelight::parseFeedback(char* buffer, size_t len) {
 }
 
 bool Yeelight::toggle() {
-  String command = String("") +"{ \"id\": "+ (++_cmdid)+", \"method\": \"toggle\", \"params\":[]}";
+  String command = String("") + "{ \"id\": " + (++_cmdid) + ", \"method\": \"toggle\", \"params\":[]}";
   if (_client.connect(_IP, _port)) {
     _client.println(command);
     return true;
@@ -117,7 +120,8 @@ bool Yeelight::toggle() {
 bool Yeelight::setRGB(int red, int green, int blue, String effect, int duration) {
   int RGB = (red * 65536) + (green * 256) + blue;
 
- String command = String("") +"{\"id\":"+ (++_cmdid)+",\"method\":\"set_rgb\",\"params\":[" + String(RGB) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
+  String command = String("") + "{\"id\":" + (++_cmdid) + ",\"method\":\"set_rgb\",\"params\":[" + String(RGB) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
+
   if (_client.connect(_IP, _port)) {
     _client.println(command);
     return true;
@@ -125,9 +129,10 @@ bool Yeelight::setRGB(int red, int green, int blue, String effect, int duration)
 }
 
 bool Yeelight::setColorTemp(int temperature, String effect, int duration) {
+  String command = String("") + "{\"id\":" + (++_cmdid) + ",\"method\":\"set_ct_abx\",\"params\":[" + String(temperature) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
 
-  String command = String("") +"{\"id\":"+ (++_cmdid)+",\"method\":\"set_ct_abx\",\"params\":[" + String(temperature) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
   if (_client.connect(_IP, _port)) {
+    Serial.println("Setting bright for: " + _IP);
     _client.println(command);
     return true;
   } else return false;
@@ -135,18 +140,18 @@ bool Yeelight::setColorTemp(int temperature, String effect, int duration) {
 
 bool Yeelight::setBrightness(int brightness, String effect, int duration) {
 
-  String command = String("") +"{\"id\":"+ (++_cmdid)+",\"method\":\"set_bright\",\"params\":[" + String(brightness) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
+  String command = String("") + "{\"id\":" + (++_cmdid) + ",\"method\":\"set_bright\",\"params\":[" + String(brightness) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
   if (_client.connect(_IP, _port)) {
-    Serial.println("Setting bright for: "+_IP);
+    Serial.println("Setting bright for: " + _IP);
     _client.println(command);
     return true;
   } else return false;
 }
 
 bool Yeelight::testConnection() {
-  String command1 = String("") +"{ \"id\": "+ (++_cmdid)+", \"method\": \"set_power\", \"params\":[\"off\", \"smooth\", 1000]}";
+  String command1 = String("") + "{ \"id\": " + (++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"off\", \"smooth\", 1000]}";
 
-  String command2 = String("") +"{ \"id\": "+ (++_cmdid)+", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
+  String command2 = String("") + "{ \"id\": " + (++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
   if (_client.connect(_IP, _port)) {
     _client.println(command1);
     delay(1000);
@@ -156,7 +161,7 @@ bool Yeelight::testConnection() {
 }
 
 bool Yeelight::on() {
-  String command = String("") +"{ \"id\": "+ (++_cmdid)+", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
+  String command = String("") + "{ \"id\": " + (++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
   if (_client.connect(_IP, _port)) {
     _client.println(command);
     return true;

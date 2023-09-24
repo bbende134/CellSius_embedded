@@ -10,8 +10,6 @@
 #define WIFI_SSID "VOL_25"
 #define WIFI_PASSWORD "135792468"
 
-StaticJsonDocument<200> jsonBuffer;
-
 static Network* instance = NULL;
 
 Network::Network() {

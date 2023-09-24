@@ -45,12 +45,10 @@ void setup() {
 
   for (int i = 0; i < IPs.size(); i++) {
     bulbs.push_back(new Yeelight(IPs[i], 55443));
-    Serial.println("IPs ------- : " + IPs[i]);
   }
 
   // Init of yeelight
   for (Yeelight* bulb : bulbs) {
-    Serial.println("getIPs ------- : " + bulb->getIP());
     bulb->on();
   }
 }
@@ -77,6 +75,7 @@ void loop() {
       for (Yeelight* bulb : bulbs) {
         Serial.println("getIPs ------- : " + bulb->getIP());
         bulb->setColorTemp(1800, "smooth", 1000);
+        bulb->feedback();
       }
 
       digitalWrite(LED, LOW);
