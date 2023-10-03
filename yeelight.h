@@ -26,12 +26,12 @@ public:
   ~Yeelight();
   void lookup();
   int feedback();
-  bool testConnection();
-  bool setRGB(int red, int green, int blue, String effect, int duration);
-  bool setColorTemp(int temperature, String effect, int duration);
-  bool setBrightness(int brightness, String effect, int duration);
-  bool on();
-  bool toggle();
+  String testConnection();
+  String setRGB(int red, int green, int blue, String effect, int duration);
+  String setColorTemp(int temperature, String effect, int duration);
+  String setBrightness(int brightness, String effect, int duration);
+  String on();
+  String toggle();
   String getLocation();
   String getSupport();
   String getIP();

@@ -55,9 +55,7 @@ void setup() {
 
 void loop() {
 
-  // Firebase.ready() should be called repeatedly to handle authentication tasks.
-
-  if (network->firebaseReady() && (millis() - dataMillis > 10000 || dataMillis == 0)) {
+  if (network->firebaseReady() && (millis() - dataMillis > 60000 || dataMillis == 0)) {
     dataMillis = millis();
 
     String documentPath = "home_1/set_thermostat_temp";
@@ -74,8 +72,10 @@ void loop() {
       digitalWrite(LED, HIGH);
       for (Yeelight* bulb : bulbs) {
         Serial.println("getIPs ------- : " + bulb->getIP());
-        bulb->setColorTemp(1800, "smooth", 1000);
-        bulb->feedback();
+        Serial.println(bulb->setBrightness(30, "smooth", 100));
+
+        Serial.println(bulb->setColorTemp(1800, "smooth", 60000));
+        // Serial.println(bulb->setBrightness(100, "smooth", 100));
       }
 
       digitalWrite(LED, LOW);
@@ -86,7 +86,9 @@ void loop() {
       digitalWrite(LED, HIGH);
       for (Yeelight* bulb : bulbs) {
         Serial.println("getIPs ------- : " + bulb->getIP());
-        bulb->setRGB(150, 150, 255, "smooth", 1000);
+        
+        Serial.println(bulb->setRGB(150, 150, 255, "smooth", 60000));
+        // Serial.println(bulb->setBrightness(80, "smooth", 80));
       }
 
       digitalWrite(LED, LOW);
@@ -96,11 +98,14 @@ void loop() {
       digitalWrite(LED, HIGH);
       for (Yeelight* bulb : bulbs) {
         Serial.println("getIPs ------- : " + bulb->getIP());
-        bulb->setColorTemp(4000, "smooth", 1000);
+        // Serial.println(bulb->setBrightness(40, "smooth", 100));
+        Serial.println(bulb->setColorTemp(4000, "smooth", 60000));
+        // Serial.println(bulb->setBrightness(40, "smooth", 100));
       }
 
       digitalWrite(LED, LOW);
     }
+    dataMillis = millis();
     old_temp = temp;
   }
 }
