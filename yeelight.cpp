@@ -34,6 +34,7 @@ bool _powered;
 char _server[15];
 String _IP;
 uint16_t _port;
+int32_t timeout = 500;
 
 uint16_t _cmdid = 0;
 
@@ -111,7 +112,7 @@ void Yeelight::parseFeedback(char* buffer, size_t len) {
 
 String Yeelight::toggle() {
   String command = String("") + "{ \"id\": " + String(++_cmdid) + ", \"method\": \"toggle\", \"params\":[]}";
-  if (_client.connect(_IP, _port)) {
+  if (_client.connect(_IP.c_str(), _port, timeout)) {
     _client.println(command);
     String result = "";
     while (_client.connected()) {
@@ -126,7 +127,7 @@ String Yeelight::setRGB(int red, int green, int blue, String effect, int duratio
   int RGB = (red * 65536) + (green * 256) + blue;
 
   String command = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"set_rgb\",\"params\":[" + String(RGB) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
-  if (_client.connect(_IP, _port)) {
+  if (_client.connect(_IP.c_str(), _port, timeout)) {
     _client.println(command);
     String result = "";
     while (_client.connected()) {
@@ -140,7 +141,7 @@ String Yeelight::setRGB(int red, int green, int blue, String effect, int duratio
 String Yeelight::setColorTemp(int temperature, String effect, int duration) {
 
   String command = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"set_ct_abx\",\"params\":[" + String(temperature) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
-  if (_client.connect(_IP, _port)) {
+  if (_client.connect(_IP.c_str(), _port, timeout)) {
     _client.println(command);
     String result = "";
     while (_client.connected()) {
@@ -154,7 +155,7 @@ String Yeelight::setColorTemp(int temperature, String effect, int duration) {
 String Yeelight::setBrightness(int brightness, String effect, int duration) {
 
   String command = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"set_bright\",\"params\":[" + String(brightness) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
-  if (_client.connect(_IP, _port)) {
+  if (_client.connect(_IP.c_str(), _port, timeout)) {
     _client.println(command);
     String result = "";
     while (_client.connected()) {
@@ -169,7 +170,7 @@ String Yeelight::testConnection() {
   String command1 = String("") + "{ \"id\": " + String(++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"off\", \"smooth\", 1000]}";
 
   String command2 = String("") + "{ \"id\": " + String(++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
-  if (_client.connect(_IP, _port)) {
+  if (_client.connect(_IP.c_str(), _port, timeout)) {
     _client.println(command1);
     delay(1000);
     _client.println(command2);
@@ -183,7 +184,7 @@ String Yeelight::testConnection() {
 }
 String Yeelight::on() {
   String command = String("") + "{ \"id\": " + String(++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
-  if (_client.connect(_IP, _port)) {
+  if (_client.connect(_IP.c_str(), _port, timeout)) {
     _client.println(command);
     String result = "";
     while (_client.connected()) {
@@ -195,7 +196,7 @@ String Yeelight::on() {
 }
 
 String Yeelight::sendCommand(String method, String params) {
-  if (_client.connect(_IP, _port)) {
+  if (_client.connect(_IP.c_str(), _port, timeout)) {
     String payload = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"" + method + "\",\"params\":" + params + "}";
     _client.println(payload);
   }

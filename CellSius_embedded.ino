@@ -72,7 +72,7 @@ void loop() {
       digitalWrite(LED, HIGH);
       for (Yeelight* bulb : bulbs) {
         Serial.println("getIPs ------- : " + bulb->getIP());
-        Serial.println(bulb->setBrightness(30, "smooth", 100));
+        // Serial.println(bulb->setBrightness(30, "smooth", 100));
 
         Serial.println(bulb->setColorTemp(1800, "smooth", 60000));
         // Serial.println(bulb->setBrightness(100, "smooth", 100));
