@@ -90,8 +90,8 @@ String Network::getTemperatureData(String documentPath, String mask) {
   FirebaseJsonData resultTemp, resultDate;
   if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), mask.c_str())) {
     //getting only temp data from received data
-    Serial.print("Received info: ");
-    Serial.println(fbdo.payload().c_str());
+    // Serial.print("Received info: ");
+    // Serial.println(fbdo.payload().c_str());
     FirebaseJson resultJSON(fbdo.payload().c_str());
     resultJSON.get(resultTemp, "fields/" + mask + "/stringValue");
     return resultTemp.to<String>();
