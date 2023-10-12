@@ -139,7 +139,8 @@ String Yeelight::setRGB(int red, int green, int blue, String effect, int duratio
 }
 
 String Yeelight::setColorTemp(int temperature, String effect, int duration) {
-
+  if (temperature > 6500) temperature = 6500;
+  if (temperature < 1700) temperature = 1700;
   String command = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"set_ct_abx\",\"params\":[" + String(temperature) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
   if (_client.connect(_IP.c_str(), _port, timeout)) {
     _client.println(command);

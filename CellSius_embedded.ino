@@ -13,6 +13,7 @@
 // This example shows how to get a document from a document collection. This operation required Email/password, custom or OAUth2.0 authentication.
 
 #include <Arduino.h>
+#include <math.h>
 #include "Adafruit_MCP9808.h"
 #include "Network.h"
 #include "yeelight.h"
@@ -35,7 +36,7 @@ int count = 0;
 
 double old_temp = 0.0;
 double temp;
-int bulb_trans = 5000;
+int bulb_trans_time = 5000;
 
 // bool taskCompleted = false;
 
@@ -83,16 +84,15 @@ void loop() {
     Serial.print("Temp: ");
     Serial.print(c, 4);
     Serial.print("°C\t  ");
-    tempsensor.shutdown_wake(1);  // shutdown MSP9808 - power consumption ~0.1 mikro Ampere, stops temperature sampling
+    tempsensor.shutdown_wake(1);  
 
     String documentPath = "home_1/set_thermostat_temp";
     String mask = "temp";
 
     temp = network->getTemperatureData(documentPath, mask).toDouble();
     double delta = c - temp;
-    Serial.print("delta: ");
-    Serial.println(delta);
-
+    Serial.print("transzfer:  ");
+    Serial.println(transferFunction(delta, 4000, 1700, 6500, 1/3));
     if (temp != old_temp || std::abs(delta) > 0.5) {
       if (delta < -1) {
         Serial.println("Its getting hot");
@@ -101,7 +101,7 @@ void loop() {
           Serial.println("getIPs ------- : " + bulb->getIP());
           // Serial.println(bulb->setBrightness(30, "smooth", 100));
 
-          Serial.println(bulb->setColorTemp(1800, "smooth", bulb_trans));
+          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 1/3), "smooth", bulb_trans_time));
           // Serial.println(bulb->setBrightness(100, "smooth", 100));
         }
 
@@ -114,8 +114,8 @@ void loop() {
         for (Yeelight* bulb : bulbs) {
           Serial.println("getIPs ------- : " + bulb->getIP());
 
-          Serial.println(bulb->setRGB(150, 150, 255, "smooth", bulb_trans));
-          // Serial.println(bulb->setBrightness(80, "smooth", 80));
+          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 1/3), "smooth", bulb_trans_time));
+          
         }
 
         digitalWrite(LED, LOW);
@@ -125,25 +125,22 @@ void loop() {
         digitalWrite(LED, HIGH);
         for (Yeelight* bulb : bulbs) {
           Serial.println("getIPs ------- : " + bulb->getIP());
-          // Serial.println(bulb->setBrightness(40, "smooth", 100));
-          Serial.println(bulb->setColorTemp(4000, "smooth", bulb_trans));
-          // Serial.println(bulb->setBrightness(40, "smooth", 100));
+          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 1/3), "smooth", bulb_trans_time));
         }
 
         digitalWrite(LED, LOW);
       }
 
-      delay(bulb_trans);
+      delay(bulb_trans_time);
       Serial.println("Temperature changeing over");
 
-    }
-    else {
+    } else {
 
       Serial.println("everything stays the same");
       digitalWrite(LED, HIGH);
       for (Yeelight* bulb : bulbs) {
         Serial.println("getIPs ------- : " + bulb->getIP());
-        Serial.println(bulb->setColorTemp(4000, "smooth", bulb_trans));        
+        Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 1/3), "smooth", bulb_trans_time));
       }
 
       digitalWrite(LED, LOW);
@@ -159,4 +156,9 @@ void loop() {
 void initNetwork() {
   network = new Network();
   network->initWiFi();
+}
+
+int transferFunction(double deltaT, int zero, int min, int max, double speed) {
+  int y = (int)(std::abs((max - min) / 2) * tanh(deltaT*  speed)) + zero;
+  return y;
 }
