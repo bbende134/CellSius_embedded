@@ -1,16 +1,25 @@
 #include <vector>
 #include "Network.h"
 #include "addons/TokenHelper.h"
+#include <HTTPClient.h>
 
+// Firebase data
 #define API_KEY "AIzaSyAHjkFGALD1RHc0IVNz8pPhM_HrjqqsPOA"
 #define FIREBASE_PROJECT_ID "test-600f6"
 #define USER_EMAIL "admin@admin.com"
 #define USER_PASSWORD "admin1234"
 
+// Wifi data
 #define WIFI_SSID "VOL_25"
 #define WIFI_PASSWORD "135792468"
 
 static Network* instance = NULL;
+
+// IFTTT data
+String eventNAME = "new_mail";
+String webhooksKEY = "bk-rNjIlmxawG-VkvLWg9K";
+const int httpsPort = 443;
+String url = "https://maker.ifttt.com/trigger/" + eventNAME + "/with/key/" + webhooksKEY;
 
 Network::Network() {
   instance = this;
@@ -76,14 +85,14 @@ std::vector<String> Network::getBulbs(String documentPath) {
   if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str())) {
     FirebaseJson resultJSON(fbdo.payload().c_str());
 
-    while (resultJSON.get(bulb, "fields/"+mask + "/stringValue")) {
+    while (resultJSON.get(bulb, "fields/" + mask + "/stringValue")) {
       bulbs.push_back(bulb.to<String>());
       mask.remove(4);
       mask = mask + String(++count);
     }
     return bulbs;
-    
-  }else return bulbs;
+
+  } else return bulbs;
 }
 
 String Network::getTemperatureData(String documentPath, String mask) {
@@ -99,5 +108,40 @@ String Network::getTemperatureData(String documentPath, String mask) {
   } else {
     Serial.println("Couldn't receive data");
     return "None";
+  }
+}
+
+int Network::postWebhooks(String value1) {
+
+  if (WiFi.status() == WL_CONNECTED) {  //Check WiFi connection status
+    HTTPClient http;
+
+    String url_out = url + "?value1=" + value1;
+    Serial.print("url: ");
+    Serial.println(url_out);
+
+    http.begin(url_out);                   //Specify destination for HTTP request
+    int httpResponseCode = http.POST("");  //Send the actual POST request
+
+    if (httpResponseCode > 0) {
+
+      String response = http.getString();  //Get the response to the request
+
+      Serial.println(httpResponseCode);  //Print return code
+      Serial.println(response);
+      return httpResponseCode;
+
+    } else {
+
+      Serial.print("Error on sending POST: ");
+      Serial.println(httpResponseCode);
+      return httpResponseCode;
+    }
+
+    http.end();  //Free resources
+
+  } else {
+    Serial.println("Error in WiFi connection");
+    return 0;
   }
 }

@@ -19,7 +19,6 @@ private:
   FirebaseData fbdo;
   FirebaseAuth auth;
   FirebaseConfig config;
-  
 
 public:
   Network();
@@ -28,5 +27,6 @@ public:
   String getTemperatureData(String documentPath, String mask);
   std::vector<String> getBulbs(String documentPath);
   bool firebaseReady();
+  int postWebhooks(String value1);
   // void firestoreDataUpdate(double temp, double humi);
 };
