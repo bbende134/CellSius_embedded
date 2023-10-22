@@ -59,8 +59,14 @@ void setup() {
 
   // Init of yeelight
   for (Yeelight* bulb : bulbs) {
-    Serial.println("bulb on: ");
-    Serial.println(bulb->on());
+    Serial.print("bulb on: ");
+    int count = 0;
+    while(bulb->on() == "false" && count <= 10) {
+      Serial.print(".");
+      delay(500);
+    }
+    if (count = 10) Serial.println("Couldn't connect to bulb");
+    else Serial.println("Connected");
   }
 
   wires.setPins(SDA_0, SCL_0);
@@ -90,9 +96,11 @@ void loop() {
     String mask = "temp";
 
     temp = network->getTemperatureData(documentPath, mask).toDouble();
+    Serial.print("writing temp data:");
+    Serial.println(network->writeTemperatureData(c, "home_1/measured_temperature"));
     double delta = c - temp;
     Serial.print("transzfer:  ");
-    Serial.println(transferFunction(delta, 4000, 1700, 6500, 1/3));
+    Serial.println(transferFunction(delta, 4000, 1700, 6500, 0.2));
     if (temp != old_temp || std::abs(delta) > 0.5) {
       if (delta < -1) {
         Serial.println("Its getting hot");
@@ -101,7 +109,7 @@ void loop() {
           Serial.println("getIPs ------- : " + bulb->getIP());
           // Serial.println(bulb->setBrightness(30, "smooth", 100));
 
-          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 1/3), "smooth", bulb_trans_time));
+          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 0.2), "smooth", bulb_trans_time));
           // Serial.println(bulb->setBrightness(100, "smooth", 100));
         }
 
@@ -114,7 +122,7 @@ void loop() {
         for (Yeelight* bulb : bulbs) {
           Serial.println("getIPs ------- : " + bulb->getIP());
 
-          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 1/3), "smooth", bulb_trans_time));
+          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 0.2), "smooth", bulb_trans_time));
           
         }
 
@@ -125,7 +133,7 @@ void loop() {
         digitalWrite(LED, HIGH);
         for (Yeelight* bulb : bulbs) {
           Serial.println("getIPs ------- : " + bulb->getIP());
-          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 1/3), "smooth", bulb_trans_time));
+          Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 0.2), "smooth", bulb_trans_time));
         }
 
         digitalWrite(LED, LOW);
@@ -140,7 +148,7 @@ void loop() {
       digitalWrite(LED, HIGH);
       for (Yeelight* bulb : bulbs) {
         Serial.println("getIPs ------- : " + bulb->getIP());
-        Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 1/3), "smooth", bulb_trans_time));
+        Serial.println(bulb->setColorTemp(transferFunction(delta, 4000, 1700, 6500, 0.2), "smooth", bulb_trans_time));
       }
 
       digitalWrite(LED, LOW);
@@ -159,6 +167,10 @@ void initNetwork() {
 }
 
 int transferFunction(double deltaT, int zero, int min, int max, double speed) {
-  int y = (int)(std::abs((max - min) / 2) * tanh(deltaT*  speed)) + zero;
+  // Serial.print("Tan: ");
+  // Serial.println(tanh(deltaT*speed));
+  // Serial.print("Abs: ");
+  // Serial.println(std::abs((max - min) / 2);
+  int y = (int)(std::abs((max - min) / 2)*tanh(deltaT*speed)) + zero;
   return y;
 }

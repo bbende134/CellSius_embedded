@@ -1,4 +1,5 @@
 #include <vector>
+#include <chrono>
 #include "Network.h"
 #include "addons/TokenHelper.h"
 #include <HTTPClient.h>
@@ -10,7 +11,7 @@
 #define USER_PASSWORD "admin1234"
 
 // Wifi data
-#define WIFI_SSID "VOL_25"
+#define WIFI_SSID "VOL 23"
 #define WIFI_PASSWORD "135792468"
 
 static Network* instance = NULL;
@@ -108,6 +109,22 @@ String Network::getTemperatureData(String documentPath, String mask) {
   } else {
     Serial.println("Couldn't receive data");
     return "None";
+  }
+}
+
+String Network::writeTemperatureData(double temp, String documentPath) {
+  FirebaseJson content;
+  String time = String(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+  content.set("fields/temperatures/mapValue/fields/key" + time + "/doubleValue", temp);
+
+  if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "temperatures.key" + time))) {
+    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+
+    return "true";
+  }
+  else {
+    Serial.println(fbdo.errorReason());
+    return "false";
   }
 }
 

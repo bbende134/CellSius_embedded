@@ -26,6 +26,7 @@ public:
   void firebaseInit();
   String getTemperatureData(String documentPath, String mask);
   std::vector<String> getBulbs(String documentPath);
+  String writeTemperatureData(double temp, String documentPath);
   bool firebaseReady();
   int postWebhooks(String value1);
   // void firestoreDataUpdate(double temp, double humi);
