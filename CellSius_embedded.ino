@@ -21,6 +21,7 @@
 // I2C communication with MCP9809
 #define SDA_0 18
 #define SCL_0 19
+#define location "location_1"
 
 #define LED 2
 
@@ -48,9 +49,9 @@ void setup() {
   initNetwork();
   network->firebaseInit();
 
-  IPs = network->getBulbs("home_1/bulbs");
+  IPs = network->getBulbs(location);
 
-
+  Serial.println(IPs[0]);
   for (int i = 0; i < IPs.size(); i++) {
     bulbs.push_back(new Yeelight(IPs[i], 55443));
     Serial.println("IPs: ");
@@ -61,11 +62,12 @@ void setup() {
   for (Yeelight* bulb : bulbs) {
     Serial.print("bulb on: ");
     int count = 0;
-    while(bulb->on() == "false" && count <= 10) {
+    while(bulb->on() == "false" && count <= 5) {
+      ++count;
       Serial.print(".");
       delay(500);
     }
-    if (count = 10) Serial.println("Couldn't connect to bulb");
+    if (count = 5) Serial.println("Couldn't connect to bulb");
     else Serial.println("Connected");
   }
 
@@ -92,12 +94,12 @@ void loop() {
     Serial.print("°C\t  ");
     tempsensor.shutdown_wake(1);  
 
-    String documentPath = "home_1/set_thermostat_temp";
-    String mask = "temp";
+    String documentPath = "locations/location_1";
+  
 
-    temp = network->getTemperatureData(documentPath, mask).toDouble();
+    temp = network->getTemperatureData(documentPath).toDouble();
     Serial.print("writing temp data:");
-    Serial.println(network->writeTemperatureData(c, "home_1/measured_temperature"));
+    Serial.println(network->writeTemperatureData(c, documentPath));
     double delta = c - temp;
     Serial.print("transzfer:  ");
     Serial.println(transferFunction(delta, 4000, 1700, 6500, 0.2));

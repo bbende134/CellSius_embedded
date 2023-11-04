@@ -77,33 +77,44 @@ bool Network::firebaseReady() {
   return Firebase.ready();
 }
 
-std::vector<String> Network::getBulbs(String documentPath) {
+std::vector<String> Network::getBulbs(String location) {
   FirebaseJsonData bulb;
+  FirebaseJson query;
   int count = 1;
-  String mask = "bulb1";
+  int index;
+  String mask = "bulb_1";
+  String mask_temp;
   std::vector<String> bulbs;
 
-  if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str())) {
+  query.set("select/fields/[0]/fieldPath", "IP");
+  query.set("from/collectionId", "bulbs");
+  query.set("from/allDescendants", false);
+  query.set("where/fieldFilter/field/fieldPath", "location");
+  query.set("where/fieldFilter/op", "EQUAL");
+  query.set("where/fieldFilter/value/stringValue", location);
+  Serial.println(location);
+  if (Firebase.Firestore.runQuery(&fbdo, FIREBASE_PROJECT_ID, "", "/", &query)) {
+    Serial.printf("ok\n%s\n\n");
+    
     FirebaseJson resultJSON(fbdo.payload().c_str());
-
-    while (resultJSON.get(bulb, "fields/" + mask + "/stringValue")) {
+    while (resultJSON.get(bulb, "[0]/document/fields/IP/mapValue/fields/" + mask + "/stringValue")) {
       bulbs.push_back(bulb.to<String>());
-      mask.remove(4);
-      mask = mask + String(++count);
+      mask.replace(mask.substring(mask.indexOf("_") + 1), String(++count));
     }
     return bulbs;
 
   } else return bulbs;
 }
 
-String Network::getTemperatureData(String documentPath, String mask) {
+String Network::getTemperatureData(String documentPath) {  // TODO: implement for the new DB
   FirebaseJsonData resultTemp, resultDate;
-  if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), mask.c_str())) {
+
+  if (Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str())) {
     //getting only temp data from received data
     // Serial.print("Received info: ");
     // Serial.println(fbdo.payload().c_str());
     FirebaseJson resultJSON(fbdo.payload().c_str());
-    resultJSON.get(resultTemp, "fields/" + mask + "/stringValue");
+    resultJSON.get(resultTemp, "fields/stringValue");
     return resultTemp.to<String>();
 
   } else {
@@ -112,17 +123,16 @@ String Network::getTemperatureData(String documentPath, String mask) {
   }
 }
 
-String Network::writeTemperatureData(double temp, String documentPath) {
+String Network::writeTemperatureData(double temp, String documentPath) {  // TODO: implement for the new DB
   FirebaseJson content;
   String time = String(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
   content.set("fields/temperatures/mapValue/fields/key" + time + "/doubleValue", temp);
 
-  if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "temperatures.key" + time))) {
+  if (Firebase.Firestore.patchDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw(), "temperatures.key" + time)) {
     Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
 
     return "true";
-  }
-  else {
+  } else {
     Serial.println(fbdo.errorReason());
     return "false";
   }
