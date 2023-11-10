@@ -112,94 +112,93 @@ void Yeelight::parseFeedback(char* buffer, size_t len) {
 
 String Yeelight::toggle() {
   String command = String("") + "{ \"id\": " + String(++_cmdid) + ", \"method\": \"toggle\", \"params\":[]}";
-  if (_client.connect(_IP.c_str(), _port, timeout)) {
-    _client.println(command);
-    String result = "";
-    while (_client.connected()) {
-      result = _client.readStringUntil('\r');
-      _client.stop();
-    }
-    return result;
-  } else return "false";
+  while (!_client.connect(_IP.c_str(), _port, timeout)) Serial.println("Retry");
+  _client.println(command);
+  String result = "";
+  while (_client.connected()) {
+    result = _client.readStringUntil('\r');
+    _client.stop();
+  }
+  return result;
 }
 
 String Yeelight::setRGB(int red, int green, int blue, String effect, int duration) {
   int RGB = (red * 65536) + (green * 256) + blue;
 
   String command = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"set_rgb\",\"params\":[" + String(RGB) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
-  if (_client.connect(_IP.c_str(), _port, timeout)) {
-    _client.println(command);
-    String result = "";
-    while (_client.connected()) {
-      result = _client.readStringUntil('\r');
-      _client.stop();
-    }
-    return result;
-  } else return "false";
+  while (!_client.connect(_IP.c_str(), _port, timeout)) Serial.println("Retry");
+  _client.println(command);
+  String result = "";
+  while (_client.connected()) {
+    result = _client.readStringUntil('\r');
+    _client.stop();
+  }
+  return result;
 }
 
 String Yeelight::setColorTemp(int temperature, String effect, int duration) {
   if (temperature > 6500) temperature = 6500;
   if (temperature < 1700) temperature = 1700;
   String command = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"set_ct_abx\",\"params\":[" + String(temperature) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
-  if (_client.connect(_IP.c_str(), _port, timeout)) {
-    _client.println(command);
-    String result = "";
-    while (_client.connected()) {
-      result = _client.readStringUntil('\r');
-      _client.stop();
-    }
-    return result;
-  } else return "false";
+  while (!_client.connect(_IP.c_str(), _port, timeout)) Serial.println("Retry");
+  _client.println(command);
+  String result = "";
+  while (_client.connected()) {
+    result = _client.readStringUntil('\r');
+    _client.stop();
+  }
+  return result;
 }
 
 String Yeelight::setBrightness(int brightness, String effect, int duration) {
 
   String command = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"set_bright\",\"params\":[" + String(brightness) + ",\"" + effect + "\"," + String(duration) + "]}\r\n\r\n\r\n";
-  if (_client.connect(_IP.c_str(), _port, timeout)) {
-    _client.println(command);
-    String result = "";
-    while (_client.connected()) {
-      result = _client.readStringUntil('\r');
-      _client.stop();
-    }
-    return result;
-  } else return "false";
+  while (!_client.connect(_IP.c_str(), _port, timeout)) Serial.println("Retry");
+  _client.println(command);
+  String result = "";
+  while (_client.connected()) {
+    result = _client.readStringUntil('\r');
+    _client.stop();
+  }
+  return result;
 }
 
 String Yeelight::testConnection() {
   String command1 = String("") + "{ \"id\": " + String(++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"off\", \"smooth\", 1000]}";
 
   String command2 = String("") + "{ \"id\": " + String(++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
-  if (_client.connect(_IP.c_str(), _port, timeout)) {
-    _client.println(command1);
-    delay(1000);
-    _client.println(command2);
-    String result = "";
-    while (_client.connected()) {
-      result = _client.readStringUntil('\r');
-      _client.stop();
-    }
-    return result;
-  } else return "false";
+  while (!_client.connect(_IP.c_str(), _port, timeout)) Serial.println("Retry");
+  _client.println(command1);
+  delay(1000);
+  _client.println(command2);
+  String result = "";
+  while (_client.connected()) {
+    result = _client.readStringUntil('\r');
+    _client.stop();
+  }
+  return result;
 }
 String Yeelight::on() {
   String command = String("") + "{ \"id\": " + String(++_cmdid) + ", \"method\": \"set_power\", \"params\":[\"on\", \"smooth\", 1000]}";
-  if (_client.connect(_IP.c_str(), _port, timeout)) {
-    _client.println(command);
-    String result = "";
-    while (_client.connected()) {
-      result = _client.readStringUntil('\r');
-      _client.stop();
-    }
-    return result;
-  } else return "false";
+  while (!_client.connect(_IP.c_str(), _port, timeout)) Serial.println("Retry");
+  _client.println(command);
+  String result = "";
+  while (_client.connected()) {
+    result = _client.readStringUntil('\r');
+    _client.stop();
+  }
+  return result;
 }
 
 String Yeelight::sendCommand(String method, String params) {
-  if (_client.connect(_IP.c_str(), _port, timeout)) {
-    String payload = String("") + "{\"id\":" + String(++_cmdid) + ",\"method\":\"" + method + "\",\"params\":" + params + "}";
-    _client.println(payload);
+  bool done = 0;
+  String payload = String("") + "{\"id\":" + (++_cmdid) + ",\"method\":\"" + method + "\",\"params\":" + params + "}";
+  while (!done) {
+    if (_client.connect(_IP.c_str(), _port, timeout)) {
+      _client.println(payload);
+      done = 1;
+    } 
+    else Serial.println("Retry connection");
   }
 
   String result = "";
@@ -209,6 +208,7 @@ String Yeelight::sendCommand(String method, String params) {
   }
   return result;
 }
+
 
 bool Yeelight::isPowered() {
   return _powered;

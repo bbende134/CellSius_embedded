@@ -24,9 +24,10 @@ public:
   Network();
   void initWiFi();
   void firebaseInit();
-  String getTemperatureData(String documentPath);
-  std::vector<String> getBulbs(String location);
-  String writeTemperatureData(double temp, String documentPath);
+  double getTemperatureData(String location, String room);
+  std::vector<String> getBulbs(String location, String room);
+  String writeTemperatureData(double temp, String location, String room, String ts);
+  String writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts);
   bool firebaseReady();
   int postWebhooks(String value1);
   // void firestoreDataUpdate(double temp, double humi);
