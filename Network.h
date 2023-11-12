@@ -26,8 +26,10 @@ public:
   void firebaseInit();
   double getTemperatureData(String location, String room);
   std::vector<String> getBulbs(String location, String room);
-  String writeTemperatureData(double temp, String location, String room, String ts);
-  String writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts);
+  std::vector<double> getTransitionFunctionData(String location, String room);
+  bool writeTemperatureData(double temp, String location, String room, String ts);
+  bool writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts);
+  bool setModifiedThermostatTemperature(double temp, String location, String room, String ts);
   bool firebaseReady();
   int postWebhooks(String value1);
   // void firestoreDataUpdate(double temp, double humi);
