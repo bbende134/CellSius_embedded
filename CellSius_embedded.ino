@@ -1,17 +1,4 @@
 
-/**
- * Created by K. Suwatchai (Mobizt)
- *
- * Email: k_suwatchai@hotmail.com
- *
- * Github: https://github.com/mobizt/Firebase-ESP-Client
- *
- * Copyright (c) 2023 mobizt
- *
- */
-
-// This example shows how to get a document from a document collection. This operation required Email/password, custom or OAUth2.0 authentication.
-
 #include <Arduino.h>
 #include <math.h>
 #include <ESPDateTime.h>
@@ -24,8 +11,8 @@
 #define SCL_0 19
 
 // location informations
-#define location "location_1"
-#define room "main_room"
+#define location "location_1_string"
+#define room "main_room_string"
 
 #define LED 2
 
@@ -44,7 +31,7 @@ String ts;
 
 double old_temp = 0.0;
 
-int bulb_trans_time = 50000;
+int bulb_trans_time = 10000;
 
 // bool taskCompleted = false;
 
@@ -83,8 +70,8 @@ void setup() {
   wires.setPins(SDA_0, SCL_0);
   if (!tempsensor.begin(0x18, &wires)) {
     Serial.println("Couldn't find MCP9808! Check your connections and verify the address is correct.");
-    while (1)
-      ;
+    // while (1)
+    //   ;
   }
 
   Serial.println("Found MCP9808!");

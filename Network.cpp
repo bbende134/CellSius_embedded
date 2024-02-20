@@ -8,8 +8,8 @@
 #include <ESPDateTime.h>
 
 // Firebase data
-#define API_KEY "AIzaSyAHjkFGALD1RHc0IVNz8pPhM_HrjqqsPOA"
-#define FIREBASE_PROJECT_ID "test-600f6"
+#define API_KEY "AIzaSyAgD73O-useNuuE2X6T-Olho-32sgXmNIk"
+#define FIREBASE_PROJECT_ID "cellsius-demo"
 #define USER_EMAIL "admin@admin.com"
 #define USER_PASSWORD "admin1234"
 
@@ -139,15 +139,15 @@ double Network::getTemperatureData(String location, String room) {
   query.set("where/compositeFilter/filters/[0]/fieldFilter/value/stringValue", room);
   query.set("where/compositeFilter/filters/[1]/fieldFilter/field/fieldPath", "type");
   query.set("where/compositeFilter/filters/[1]/fieldFilter/op", "EQUAL");
-  query.set("where/compositeFilter/filters/[1]/fieldFilter/value/stringValue", "set_thermostat");
+  query.set("where/compositeFilter/filters/[1]/fieldFilter/value/stringValue", "set_temp");
 
   //ORDERING
-  query.set("orderBy/field/fieldPath", "ts");
+  query.set("orderBy/field/fieldPath", "timestamp");
   query.set("orderBy/direction", "DESCENDING");
   query.set("limit", 1);
 
   if (Firebase.Firestore.runQuery(&fbdo, FIREBASE_PROJECT_ID, "", "/", &query)) {
-    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    Serial.printf("ok temperature\n%s\n\n", fbdo.payload().c_str());
     FirebaseJson resultJSON(fbdo.payload().c_str());
     resultJSON.get(resultTemp, "[0]/document/fields/val/doubleValue/");
     if (resultTemp.to<double>() == 0.0) resultJSON.get(resultTemp, "[0]/document/fields/val/integerValue/");
@@ -177,10 +177,10 @@ std::vector<double> Network::getTransitionFunctionData(String location, String r
   query.set("where/compositeFilter/op", "AND");
   query.set("where/compositeFilter/filters/[2]/fieldFilter/field/fieldPath", "location");
   query.set("where/compositeFilter/filters/[2]/fieldFilter/op", "EQUAL");
-  query.set("where/compositeFilter/filters/[2]/fieldFilter/value/stringValue", "location_1");
+  query.set("where/compositeFilter/filters/[2]/fieldFilter/value/stringValue", location);
   query.set("where/compositeFilter/filters/[0]/fieldFilter/field/fieldPath", "room");
   query.set("where/compositeFilter/filters/[0]/fieldFilter/op", "EQUAL");
-  query.set("where/compositeFilter/filters/[0]/fieldFilter/value/stringValue", "main_room");
+  query.set("where/compositeFilter/filters/[0]/fieldFilter/value/stringValue", room);
   query.set("where/compositeFilter/filters/[1]/fieldFilter/field/fieldPath", "type");
   query.set("where/compositeFilter/filters/[1]/fieldFilter/op", "EQUAL");
   query.set("where/compositeFilter/filters/[1]/fieldFilter/value/stringValue", "transition_data");
@@ -191,7 +191,7 @@ std::vector<double> Network::getTransitionFunctionData(String location, String r
   query.set("limit", 1);
 
   if (Firebase.Firestore.runQuery(&fbdo, FIREBASE_PROJECT_ID, "", "/", &query)) {
-    Serial.printf("ok\n%s\n\n", fbdo.payload().c_str());
+    Serial.printf("ok transition\n%s\n\n", fbdo.payload().c_str());
     FirebaseJson resultJSON(fbdo.payload().c_str());
 
     resultJSON.get(resultData, "[0]/document/fields/zero/doubleValue/");
@@ -240,7 +240,7 @@ bool Network::writeTemperatureData(double temp, String location, String room, St
   }
 }
 
-bool Network::writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts) {  // TODO: implement for the new DB
+bool Network::writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts) {  
 
   FirebaseJson content;
   ts.remove(ts.length() - 5, 5);
