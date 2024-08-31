@@ -3,7 +3,7 @@
 #include <math.h>
 #include <ESPDateTime.h>
 #include "Adafruit_MCP9808.h"
-#include "Network.h"
+#include "Network_comm.h"
 #include "yeelight.h"
 
 // I2C communication with MCP9809
@@ -23,7 +23,7 @@ StaticJsonDocument<200> jsonBuffer;
 std::vector<Yeelight*> bulbs;
 std::vector<String> IPs;
 std::vector<double> transition_data;
-Network* network;
+Network_comm* network;
 
 unsigned long data_millis = 0;
 int count = 0;
@@ -166,7 +166,7 @@ void loop() {
 }
 
 void initNetwork() {
-  network = new Network();
+  network = new Network_comm();
   network->initWiFi();
 }
 
