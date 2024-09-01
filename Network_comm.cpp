@@ -5,6 +5,7 @@
 #include "Network_comm.h"
 #include <HTTPClient.h>
 #include <ESPDateTime.h>
+#include <FirebaseJson.h>
 
 #if defined(ESP32) || defined(ESP8266) || defined(ARDUINO_RASPBERRY_PI_PICO_W)
 #include <WiFiClientSecure.h>
@@ -15,23 +16,29 @@ WiFiSSLClient ssl_client;
 #endif
 
 // Firebase data
+#define API_KEY "AIzaSyAgD73O-useNuuE2X6T-Olho-32sgXmNIk"
 #define FIREBASE_PROJECT_ID "cellsius-demo"
 #define FIREBASE_CLIENT_EMAIL "firebase-adminsdk-6qn3e@cellsius-demo.iam.gserviceaccount.com"
 const char PRIVATE_KEY[] PROGMEM = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDCyh+KHejbHA3A\nmPvoZl0m2EQgCjJSQIWdrYaY1UQBOiED4fNZSsKL3RITCh85oPx98lLtFDE34ACz\nq8XVKc9yccOzgtu8WrLDiqa+M7xwh6VBr2iSDasJP+1Xv5GkkL+uq4qkwdU2MOj4\nLhl+K2RjKkZU+6gqEXKsQMk39EINMGIVpaZn56PMKsZXZ6MrGXQaRYrHIVUPGirC\ni5qEYwbDLbq08VqH8hc/jSKGA+gsmVNZaMWlqYL+Ccekph/ZEz/oh2/qSL6f9jj1\nDKLRGV8Iq8wgZs430olFRPC0kGdn0pLx16rMfGZJicCQzFC6iSX0r80FC8z2c/iN\n2RdF+aIHAgMBAAECggEABYyhgz3Pgz1IIhg5qLLVj5+XM7nbkDncgPF7tCtBskJU\nddfbTlYUI5HFENIaO3oSBjDYhwiNdwZar/7HQGBUQAXO7EM5Mw+YlHwE5BUSyAlQ\nVwYavSwBlxlBSvr8pRJYKJHB6gXbpv+T3pu2iA8x8xxdhJWrvWmJOZLBY9zaMS/L\nj4neAjsfeW1bgxeF7V/VjWpz64IlY1naMEr0ua9zkk9uxDbgtA6UUCAuAiuvIBXy\nuf2sikuZ3ddY2TKL/OZJlEnId0ZlzmbKYOpjXJM+iq/KTrxyF92mM8ZXAjNfnHdq\nbPGKmX9Plony9J+f6ZpdKMBBLXs5GPw9NVBFrBWKAQKBgQDqnVJ2qcndEt2JgX25\nXb15lByMe8eYc9/FC1XCnmy//cR+pUfdueJHZqtg4p6aERVFwYxjTjOoVJMd5mVj\nCCJurKTHT5huzbb3gGR5wta+im4s+/KmHnMjG5cH6GVngLLt6+hG5um0e/IZuPtF\nfWlarK2Q0kDJ375z5l96nAJvdwKBgQDUi35i52PptQLQmkPNyuG8oX9hjFU56Xcm\nDeto5Y7eaIWbPqVE94E/kjue4+F/y4F5REXNwgJcqHQO68XZPiZvw0V8wHoJIVpn\nCzT9Z/m4O8/AwfznCzuM8yO9cB+dCOxpMVoFZlLXTuaCFOOo8J6dHy/0ydCxAOIQ\nVqZYJKGl8QKBgQC9GZa47Ds3RBhp14RVXxf0IYwtMyt6VpMbB/rUxcqTqN+y0Fcv\ngL7AnCEwExiQx4ok0k7sT8DVQW3eoLBBdPID0IVz3FTZoleB/+t8NK3PoFYTTfOT\nL2HP/1HpXsg094fAuu9aDo56GZjWYMGujdnX6uxumPj9fajNU/bLJWnVGwKBgAzT\nmj33vtTUwqW6GYtqyfKrQFevs1j6WOFoB6Pd7qBHaIC06B5gXWFrvsNY9zvSGS8r\nSpcfNStIUzCvU9JHaORnwWLE7thsNdtwFrOQOca/fUshqdR7ng1kguykvpOofTPf\n8ZHP2gH6VfjVr+N7GedbgXZhU4HLDtlzkThShZrRAoGBAKGlo85kSjGkEy1h/SXG\nniVXrflFIFlk0RAlAhL2xnCuTSdSNgGf4pJ3vcpT6Saq6AGR4OzN/YSxs9V0bpSJ\nz+w5K/KT1A3fKY15Fg6rzprAqkb9wZXUFgd5GgRNbde3rCLb9j7SMOmRwy3WshQz\n5a7FkKNVhvfx9SkJfUPPMR/v\n-----END PRIVATE KEY-----\n";
 
 // Wifi data
-#define WIFI_SSID "VOL 25"
+#define WIFI_SSID "VOL 23"
 #define WIFI_PASSWORD "135792468"
 
+#define USER_EMAIL "admin@admin.com"
+#define USER_PASSWORD "admin1234"
+
+#define FIREBASE_PROJECT_ID "cellsius-demo"
+
+void timeStatusCB(uint32_t &ts);
+
 // Firebase communication variables
+// ServiceAuth sa_auth(timeStatusCB, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID, PRIVATE_KEY, 3000 /* expire period in seconds (<= 3600) */);
 UserAuth user_auth(API_KEY, USER_EMAIL, USER_PASSWORD);
-FirebaseApp app;
-DefaultNetwork network;
+DefaultNetwork defNetwork;
 using AsyncClient = AsyncClientClass;
-AsyncClient aClient(ssl_client, getNetwork(network));
-Firestore::Documents Docs;
+AsyncClient aClient(ssl_client, getNetwork(defNetwork));
 Firestore::CollectionGroups::Indexes indexes;
-AsyncResult aResult_no_callback;
 
 
 // IFTTT data
@@ -77,7 +84,7 @@ void Network_comm::initWiFi() {
 void Network_comm::firebaseInit() {
   Firebase.printf("Firebase Client v%s\n", FIREBASE_CLIENT_VERSION);
 
-  initializeApp(aClient, app, getAuth(sa_auth), aResult_no_callback);
+  initializeApp(aClient, app, getAuth(user_auth), aResult_no_callback);
 
 #if defined(ESP32) || defined(ESP8266) || defined(PICO_RP2040)
   ssl_client.setInsecure();
@@ -90,7 +97,7 @@ void Network_comm::firebaseInit() {
 }
 
 void Network_comm::loopElements() {
-  JWT.loop(app.getAuth());
+  // JWT.loop(app.getAuth());
 
   app.loop();
 
@@ -99,7 +106,7 @@ void Network_comm::loopElements() {
 }
 
 bool Network_comm::firebaseReady() {
-  return Firebase.ready();
+  return app.ready();
 }
 
 std::vector<String> Network_comm::getBulbs(String location, String room) {
@@ -164,10 +171,18 @@ std::vector<String> Network_comm::getBulbs(String location, String room) {
   Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback);
   queryOptions.clear();
 
-  FirebaseJson resultJSON(aResult_no_callback.c_str());
-  while (resultJSON.get(bulb, "[0]/document/fields/IP/mapValue/fields/" + mask + "/stringValue")) {
-    bulbs.push_back(bulb.to<String>());
-    mask.replace(mask.substring(mask.indexOf("_") + 1), String(++count));
+  if (aResult_no_callback.available())
+  {
+    FirebaseJson resultJSON(aResult_no_callback.c_str());
+    while (resultJSON.get(bulb, "[0]/document/fields/IP/mapValue/fields/" + mask + "/stringValue")) {
+      bulbs.push_back(bulb.to<String>());
+      mask.replace(mask.substring(mask.indexOf("_") + 1), String(++count));
+    }
+    return bulbs;
+  }
+  else if (aResult_no_callback.isError()) {
+    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
+    return bulbs;
   }
 
 }
@@ -192,14 +207,14 @@ double Network_comm::getTemperatureData(String location, String room) {
   FieldFilter locationFilter;
   locationFilter.field(FieldReference("location"));
   locationFilter.op(FieldFilterOperator::EQUAL);
-  Values::StringValue locationString("location_1_string");
+  Values::StringValue locationString(location);
   locationFilter.value(Values::Value(locationString));
 
   // Creating the FieldFilter for the room == "main_room_string"
   FieldFilter roomFilter;
   roomFilter.field(FieldReference("room"));
   roomFilter.op(FieldFilterOperator::EQUAL);
-  Values::StringValue roomString("main_room_string");
+  Values::StringValue roomString(room);
   roomFilter.value(Values::Value(roomString));
 
   // Create compositeFilter from the above
@@ -238,48 +253,99 @@ double Network_comm::getTemperatureData(String location, String room) {
 
   Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback);
   queryOptions.clear();
-
-  Serial.printf("ok temperature\n%s\n\n", aResult_no_callback.c_str());
-  FirebaseJson resultJSON(aResult_no_callback.c_str());
-  resultJSON.get(resultTemp, "[0]/document/fields/val/doubleValue/");
-  if (resultTemp.to<double>() == 0.0) resultJSON.get(resultTemp, "[0]/document/fields/val/integerValue/");
-  return resultTemp.to<double>();
+  if (aResult_no_callback.available())
+  {
+    Serial.printf("ok temperature\n%s\n\n", aResult_no_callback.c_str());
+    FirebaseJson resultJSON(aResult_no_callback.c_str());
+    resultJSON.get(resultTemp, "[0]/document/fields/val/doubleValue/");
+    if (resultTemp.to<double>() == 0.0) resultJSON.get(resultTemp, "[0]/document/fields/val/integerValue/");
+    return resultTemp.to<double>();
+  }
+  else if (aResult_no_callback.isError()) {
+    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
+    return resultTemp.to<double>();
+  }
 }
 
 std::vector<double> Network_comm::getTransitionFunctionData(String location, String room) {
 
+  // Variable definition
   FirebaseJsonData resultData;
-  FirebaseJson query;
   std::vector<double> transitionData;
+  StructuredQuery query;
 
-  query.set("select/fields/[0]/fieldPath", "zero");
-  query.set("select/fields/[1]/fieldPath", "min");
-  query.set("select/fields/[2]/fieldPath", "max");
-  query.set("select/fields/[3]/fieldPath", "speed");
+  // Select collection
+  query.from(CollectionSelector("bulbs", false));
 
-  query.set("from/collectionId", "bulbs");
-  query.set("from/allDescendants", false);
+  // Select the field
+  Projection projection(FieldReference("zero"));
+  projection.add(FieldReference("min"));
+  projection.add(FieldReference("max"));
+  projection.add(FieldReference("speed"));
+  query.select(projection);
 
-  // COMPOSITE FILTERS
-  query.set("where/compositeFilter/op", "AND");
-  query.set("where/compositeFilter/filters/[2]/fieldFilter/field/fieldPath", "location");
-  query.set("where/compositeFilter/filters/[2]/fieldFilter/op", "EQUAL");
-  query.set("where/compositeFilter/filters/[2]/fieldFilter/value/stringValue", location);
-  query.set("where/compositeFilter/filters/[0]/fieldFilter/field/fieldPath", "room");
-  query.set("where/compositeFilter/filters/[0]/fieldFilter/op", "EQUAL");
-  query.set("where/compositeFilter/filters/[0]/fieldFilter/value/stringValue", room);
-  query.set("where/compositeFilter/filters/[1]/fieldFilter/field/fieldPath", "type");
-  query.set("where/compositeFilter/filters/[1]/fieldFilter/op", "EQUAL");
-  query.set("where/compositeFilter/filters/[1]/fieldFilter/value/stringValue", "transition_data");
+  // Creating the FieldFilter for the type == ""
+  FieldFilter typeFilter;
+  typeFilter.field(FieldReference("type"));
+  typeFilter.op(FieldFilterOperator::EQUAL);
+  Values::StringValue typeString("transition_data");
+  typeFilter.value(Values::Value(typeString));        
+  
+  // Creating the FieldFilter for the location == "locationstring"
+  FieldFilter locationFilter;
+  locationFilter.field(FieldReference("location"));
+  locationFilter.op(FieldFilterOperator::EQUAL);
+  Values::StringValue locationString(location);
+  locationFilter.value(Values::Value(locationString));
 
-  //ORDERING
-  query.set("orderBy/field/fieldPath", "ts");
-  query.set("orderBy/direction", "DESCENDING");
-  query.set("limit", 1);
+  // Creating the FieldFilter for the room == "main_room_string"
+  FieldFilter roomFilter;
+  roomFilter.field(FieldReference("room"));
+  roomFilter.op(FieldFilterOperator::EQUAL);
+  Values::StringValue roomString(room);
+  roomFilter.value(Values::Value(roomString));
 
-  if (Firebase.Firestore.runQuery(&fbdo, FIREBASE_PROJECT_ID, "", "/", &query)) {
-    Serial.printf("ok transition\n%s\n\n", fbdo.payload().c_str());
-    FirebaseJson resultJSON(fbdo.payload().c_str());
+  // Create compositeFilter from the above
+  CompositeFilter transFilter;
+  transFilter.op(CompositFilterOperator::AND);
+  transFilter.addFilter(FirestoreQuery::Filter(typeFilter));
+  transFilter.addFilter(FirestoreQuery::Filter(locationFilter));
+  transFilter.addFilter(FirestoreQuery::Filter(roomFilter));
+  query.where(FirestoreQuery::Filter(transFilter));
+
+  // Create the ordering of the query
+  Order order;
+  order.field(FieldReference("ts"));
+  order.direction(FilterSort::DESCENDING);
+  query.orderBy(order);
+
+  query.limit(1);
+
+  QueryOptions queryOptions;
+  queryOptions.structuredQuery(query);
+
+  query.clear();
+  projection.clear();
+  typeFilter.clear();
+  locationFilter.clear();
+  roomFilter.clear();
+  transFilter.clear();
+  typeString.clear();
+  locationString.clear();
+  roomString.clear();
+  order.clear();
+
+  String documentPath = "/"; // Query from all collections under root
+
+  // You can set the content of queryOptions object directly with queryOptions.setContent("your content")
+
+  Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback);
+  queryOptions.clear();
+
+  if (aResult_no_callback.available())
+  {
+    Serial.printf("ok transition\n%s\n\n", aResult_no_callback.c_str());
+    FirebaseJson resultJSON(aResult_no_callback.c_str());
 
     resultJSON.get(resultData, "[0]/document/fields/zero/doubleValue/");
     resultJSON.get(resultData, "[0]/document/fields/zero/integerValue/");
@@ -298,79 +364,128 @@ std::vector<double> Network_comm::getTransitionFunctionData(String location, Str
     transitionData.push_back(resultData.to<double>());
 
     return transitionData;
-
-  } else {
-    Serial.println(fbdo.errorReason());
+  }
+  else if (aResult_no_callback.isError()) {
+    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
     return transitionData;
   }
+
 }
 
 bool Network_comm::writeTemperatureData(double temp, String location, String room, String ts) {  // TODO: implement for the new DB
 
-  FirebaseJson content;
   ts.remove(ts.length() - 5, 5);
   ts += "Z";
 
-  String documentPath = "temperature/actual_temp_" + ts;
-  content.set("fields/type/stringValue/", "actual_temperature");
-  content.set("fields/value/doubleValue/", temp);
-  content.set("fields/location/stringValue/", location);
-  content.set("fields/room/stringValue/", room);
-  content.set("fields/ts/timestampValue/", ts);
+  Values::TimestampValue tsV(ts);
 
-  if (Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw())) {
-    Serial.println("ok write actual temperature");
+  String documentPath = "temperature/acutal_temp_" + String(tsV.c_str());
+
+  Values::DoubleValue temperature(temp);
+  Values::StringValue typeString("actual_temperature");
+  Values::StringValue locationString(location);
+  Values::StringValue roomString(room);
+
+  String doc_path = "projects/";
+  doc_path += FIREBASE_PROJECT_ID;
+  doc_path += "/databases/(default)/documents/coll_id/doc_id"; // coll_id and doc_id are your collection id and document id
+
+  Document<Values::Value> doc("value", Values::Value(temperature));
+  doc.add("ts", Values::Value(tsV)).add("type", Values::Value(typeString)).add("room", Values::Value(roomString));
+  doc.add("location", Values::Value(locationString));
+
+  // The value of Values::xxxValue, Values::Value and Document can be printed on Serial.
+
+  Serial.println("Create document... ");
+
+  Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc, aResult_no_callback);
+  if (aResult_no_callback.available())
+  {
+    Firebase.printf("task: %s, payload: %s\n", aResult_no_callback.uid().c_str(), aResult_no_callback.c_str());
     return 1;
-  } else {
-    Serial.println(fbdo.errorReason());
+  }
+  else {
+    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
     return 0;
   }
 }
 
 bool Network_comm::writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts) {  
 
-  FirebaseJson content;
   ts.remove(ts.length() - 5, 5);
   ts += "Z";
 
-  String documentPath = "bulbs/actual_state_" + ts + "_" + IP;
-  content.set("fields/type/stringValue/", "state");
-  content.set("fields/IP/stringValue/", IP);
-  content.set("fields/hue/integerValue/", hue);
-  content.set("fields/sat/integerValue/", sat);
-  content.set("fields/rgb/integerValue/", rgb);
-  content.set("fields/ct/integerValue/", ct);
-  content.set("fields/location/stringValue/", location);
-  content.set("fields/room/stringValue/", room);
-  content.set("fields/ts/timestampValue/", ts);
+  Values::TimestampValue tsV(ts);
+  String documentPath = "bulbs/actual_state_" + String(tsV.c_str()) + "_" + IP;
 
-  if (Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw())) {
-    Serial.println("ok bulb props");
+  Values::StringValue IPV(IP);
+  Values::StringValue typeString("state");
+  Values::IntegerValue hueV(hue);
+  Values::IntegerValue satV(sat);
+  Values::IntegerValue rgbV(rgb);
+  Values::IntegerValue ctV(ct);
+  Values::StringValue locationString(location);
+  Values::StringValue roomString(room);
+
+  String doc_path = "projects/";
+  doc_path += FIREBASE_PROJECT_ID;
+  doc_path += "/databases/(default)/documents/coll_id/doc_id"; // coll_id and doc_id are your collection id and document id
+
+  Document<Values::Value> doc("IP", Values::Value(IPV));
+  doc.add("ts", Values::Value(tsV)).add("type", Values::Value(typeString)).add("room", Values::Value(roomString));
+  doc.add("location", Values::Value(locationString)).add("hue", Values::Value(hueV)).add("sat", Values::Value(satV));
+  doc.add("rgb", Values::Value(rgbV)).add("ct", Values::Value(ctV));
+
+  // The value of Values::xxxValue, Values::Value and Document can be printed on Serial.
+
+  Serial.println("Create document... ");
+
+  Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc, aResult_no_callback);
+  if (aResult_no_callback.available())
+  {    
+    Firebase.printf("task: %s, payload: %s\n", aResult_no_callback.uid().c_str(), aResult_no_callback.c_str());
     return 1;
-  } else {
-    Serial.println(fbdo.errorReason());
+  }
+  else {
+    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
     return 0;
   }
 }
 
 bool Network_comm::setModifiedThermostatTemperature(double temp, String location, String room, String ts) {  // TODO: implement for the new DB
 
-  FirebaseJson content;
   ts.remove(ts.length() - 5, 5);
   ts += "Z";
 
-  String documentPath = "temperature/set_modified_thermostat_temperature_" + ts;
-  content.set("fields/type/stringValue/", "set_modified_thermostat_temperature");
-  content.set("fields/value/doubleValue/", temp);
-  content.set("fields/location/stringValue/", location);
-  content.set("fields/room/stringValue/", room);
-  content.set("fields/ts/timestampValue/", ts);
+  Values::TimestampValue tsV(ts);
 
-  if (Firebase.Firestore.createDocument(&fbdo, FIREBASE_PROJECT_ID, "", documentPath.c_str(), content.raw())) {
-    Serial.println("ok write thermostat temperature");
+  String documentPath = "temperature/set_modified_thermostat_temperature_" + String(tsV.c_str());
+
+  Values::DoubleValue temperature(temp);
+  Values::StringValue typeString("actual_temperature");
+  Values::StringValue locationString(location);
+  Values::StringValue roomString(room);
+
+  String doc_path = "projects/";
+  doc_path += FIREBASE_PROJECT_ID;
+  doc_path += "/databases/(default)/documents/coll_id/doc_id"; // coll_id and doc_id are your collection id and document id
+
+  Document<Values::Value> doc("value", Values::Value(temperature));
+  doc.add("ts", Values::Value(tsV)).add("type", Values::Value(typeString)).add("room", Values::Value(roomString));
+  doc.add("location", Values::Value(locationString));
+
+  // The value of Values::xxxValue, Values::Value and Document can be printed on Serial.
+
+  Serial.println("Create document... ");
+
+  Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc, aResult_no_callback);
+  if (aResult_no_callback.available())
+  {
+    Firebase.printf("task: %s, payload: %s\n", aResult_no_callback.uid().c_str(), aResult_no_callback.c_str());
     return 1;
-  } else {
-    Serial.println(fbdo.errorReason());
+  }
+  else {
+    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
     return 0;
   }
 }
@@ -410,7 +525,7 @@ int Network_comm::postWebhooks(String value1) {
   }
 }
 
-void Network_comm::timeStatusCB(uint32_t &ts)
+void timeStatusCB(uint32_t &ts)
 {
 #if defined(ESP8266) || defined(ESP32) || defined(CORE_ARDUINO_PICO)
     if (time(nullptr) < FIREBASE_DEFAULT_TS)

@@ -11,13 +11,13 @@
 #endif
 
 #include <FirebaseClient.h>
-#include <ArduinoJson.h>
 
 class Network_comm {
 private:
-  FirebaseData fbdo;
-  FirebaseAuth auth;
-  FirebaseConfig config;
+  Firestore::Documents Docs;
+  FirebaseApp app;
+  AsyncResult aResult_no_callback;
+
 
 public:
   Network_comm();
@@ -28,7 +28,7 @@ public:
   std::vector<double> getTransitionFunctionData(String location, String room);
   bool writeTemperatureData(double temp, String location, String room, String ts);
   void loopElements();
-  void timeStatusCB(uint32_t &ts);
+  // void timeStatusCB(uint32_t &ts);
   bool writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts);
   bool setModifiedThermostatTemperature(double temp, String location, String room, String ts);
   bool firebaseReady();

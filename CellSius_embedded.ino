@@ -23,7 +23,7 @@ StaticJsonDocument<200> jsonBuffer;
 std::vector<Yeelight*> bulbs;
 std::vector<String> IPs;
 std::vector<double> transition_data;
-Network_comm* network;
+Network_comm* network = new Network_comm();
 
 unsigned long data_millis = 0;
 int count = 0;
@@ -40,7 +40,7 @@ void setup() {
   Serial.begin(115200);
 
   // Init of network
-  initNetwork();
+  network->initWiFi();
 
   // set up datetime
   setupDateTime();
@@ -79,7 +79,7 @@ void setup() {
 }
 
 void loop() {
-
+  network->loopElements();
   if (network->firebaseReady() && (millis() - data_millis > bulb_trans_time || data_millis == 0)) {
 
     if (!DateTime.isTimeValid()) {
@@ -165,10 +165,6 @@ void loop() {
   }
 }
 
-void initNetwork() {
-  network = new Network_comm();
-  network->initWiFi();
-}
 
 int transferFunction(double deltaT, int zero, int min, int max, double speed) {
   // Serial.print("Tan: ");
