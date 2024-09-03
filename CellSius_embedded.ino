@@ -5,6 +5,7 @@
 #include "Adafruit_MCP9808.h"
 #include "Network_comm.h"
 #include "yeelight.h"
+#include <ArduinoJson.h>
 
 // I2C communication with MCP9809
 #define SDA_0 18
