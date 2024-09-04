@@ -34,29 +34,29 @@
 
 
 class Network_comm {
-private:
 
 public:
   Network_comm();
   void initWiFi();
   void firebaseInit();
   double getTemperatureData(String location, String room);
-  std::vector<String> getBulbs(String location, String room);
-  std::vector<double> getTransitionFunctionData(String location, String room);
-  bool writeTemperatureData(double temp, String location, String room, String ts);
+  std::vector<String> getBulbs(String location, String room, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient);
+  std::vector<double> getTransitionFunctionData(String location, String room, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient);
+  bool writeTemperatureData(double temp, String location, String room, String ts, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient);
   void loopElements();
   // void timeStatusCB(uint32_t &ts);
-  bool writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts);
-  bool setModifiedThermostatTemperature(double temp, String location, String room, String ts);
+  bool writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient);
+  bool setModifiedThermostatTemperature(double temp, String location, String room, String ts, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient);
   bool firebaseReady();
   int postWebhooks(String value1);
   // void firestoreDataUpdate(double temp, double humi);
-  static DefaultNetwork defNetwork;
-  static Firestore::Documents Docs;
-  static FirebaseApp app;
-  static AsyncResult aResult_no_callback;
-  static WiFiClientSecure ssl_client;
-  static Firestore::CollectionGroups::Indexes indexes;
+private:
+  // DefaultNetwork defNetwork;
+  // Firestore::Documents Docs;
+  // FirebaseApp app;
+  // AsyncResult aResult_no_callback;
+  // WiFiClientSecure ssl_client;
+  // Firestore::CollectionGroups::Indexes indexes;
 
 };
 

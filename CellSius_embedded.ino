@@ -3,9 +3,11 @@
 #include <math.h>
 #include <ESPDateTime.h>
 #include "Adafruit_MCP9808.h"
-#include "Network_comm.h"
+#include "Fire.h"
 #include "yeelight.h"
 #include <ArduinoJson.h>
+#include <WiFiClientSecure.h>
+#include <FirebaseClient.h>
 
 // I2C communication with MCP9809
 #define SDA_0 18
@@ -17,14 +19,19 @@
 
 #define LED 2
 
+// Temperature sensor wire settings
 Adafruit_MCP9808 tempsensor = Adafruit_MCP9808();
 TwoWire wires = (TwoWire(0));
 
+// Data for bulbs communication
 StaticJsonDocument<200> jsonBuffer;
 std::vector<Yeelight*> bulbs;
 std::vector<String> IPs;
 std::vector<double> transition_data;
-Network_comm* network = new Network_comm();
+
+// Network variables
+// Network_comm* network = new Network_comm();
+Fire *fire_work = new Fire();
 
 unsigned long data_millis = 0;
 int count = 0;
@@ -41,16 +48,18 @@ void setup() {
   Serial.begin(115200);
 
   // Init of network
-  network->initWiFi();
+  fire_work->initWiFi();
 
   // set up datetime
   setupDateTime();
 
   // init firebase
-  network->firebaseInit();
+  fire_work->firebaseInit();
+
+  fire_work->loopElements();
 
   // get bulbs for the actual room in the actual location
-  while (IPs.empty()) IPs = network->getBulbs(location, room);
+  while (IPs.empty()) IPs = fire_work->getBulbs(location, room);
 
   // Creating the bulb vector
   for (int i = 0; i < IPs.size(); i++) {
@@ -80,8 +89,9 @@ void setup() {
 }
 
 void loop() {
-  network->loopElements();
-  if (network->firebaseReady() && (millis() - data_millis > bulb_trans_time || data_millis == 0)) {
+  fire_work->loopElements();
+
+  if (fire_work->firebaseReady() && (millis() - data_millis > bulb_trans_time || data_millis == 0)) {
 
     if (!DateTime.isTimeValid()) {
       Serial.println("Failed to get time from server, retry.");
@@ -99,16 +109,16 @@ void loop() {
     tempsensor.shutdown_wake(1);
 
     Serial.print("writing set_thermostat_temp data:");
-    Serial.println(network->writeTemperatureData(c, location, room, ts));
+    Serial.println(fire_work->writeTemperatureData(c, location, room, ts));
 
-    double set_thermostat_temp = network->getTemperatureData(location, room);
+    double set_thermostat_temp = fire_work->getTemperatureData(location, room);
     double delta = c - set_thermostat_temp;
     Serial.print("Set temp: ");
     Serial.print(set_thermostat_temp);
     Serial.println("°C\t  ");
 
     // Get the transfer function data
-    transition_data = network->getTransitionFunctionData(location, room);
+    transition_data = fire_work->getTransitionFunctionData(location, room);
     Serial.print("transzfer:  ");
     Serial.println(transferFunction(delta, transition_data[0], transition_data[1], transition_data[2], transition_data[3]));
 
@@ -122,7 +132,7 @@ void loop() {
         temp = set_thermostat_temp;
       }
       Serial.print("modifying temp: ");
-      Serial.println(network->setModifiedThermostatTemperature(temp, location, room, ts));
+      Serial.println(fire_work->setModifiedThermostatTemperature(temp, location, room, ts));
     }
     for (Yeelight* bulb : bulbs) {
       // Serial.println("getIPs ------- : " + bulb->getIP());
@@ -154,7 +164,7 @@ void loop() {
       // Serial.println((int)root["result"][2]);
       // Serial.print("- ct is: ");
       // Serial.println((int)root["result"][3]);
-      network->writeBulbState(
+      fire_work->writeBulbState(
         bulb->getIP(),
         (int)root["result"][0],
         (int)root["result"][1],

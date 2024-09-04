@@ -1,69 +1,46 @@
-#include <vector>
-#include <NTPClient.h>
-#include <WiFiUdp.h>
-// #include <chrono>
-#include "Network_comm.h"
-#include <HTTPClient.h>
-#include <ESPDateTime.h>
-#include <FirebaseJson.h>
-#include <FirebaseClient.h>
-#include <WiFiClientSecure.h>
+#include "fire.h"
 
-#define WIFI_SSID "VOL 23"
-#define WIFI_PASSWORD "135792468"
-
+DefaultNetwork defNetwork;
 void timeStatusCB(uint32_t &ts);
+void authHandler();
+void printError(int code, const String &msg);
+void printResult(AsyncResult &aResult);
 
-// Firebase communication variables
-// ServiceAuth sa_auth(timeStatusCB, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID, PRIVATE_KEY, 3000 /* expire period in seconds (<= 3600) */);
-// const char API_KEY[] = "AIzaSyAgD73O-useNuuE2X6T-Olho-32sgXmNIk";
-// const char WIFI_SSID[] = "VOL 23";
-// const char WIFI_PASSWORD[] = "135792468";
-// const char USER_EMAIL[] = "admin@admin.com";
-// const char USER_PASSWORD[] = "admin1234";
-// const char FIREBASE_PROJECT_ID[] = "cellsius-demo";
+ServiceAuth sa_auth(timeStatusCB, FIREBASE_CLIENT_EMAIL, FIREBASE_PROJECT_ID, PRIVATE_KEY, 3000 /* expire period in seconds (<= 3600) */);
+
+// UserAuth user_auth(API_KEY, USER_EMAIL, USER_PASSWORD);
+
+FirebaseApp app;
+WiFiClientSecure ssl_client;
+
 using AsyncClient = AsyncClientClass;
+AsyncClient aClient(ssl_client, getNetwork(defNetwork));
+Firestore::CollectionGroups::Indexes indexes;
 
-// DefaultNetwork Network_comm::defNetwork;
-// Firestore::Documents Network_comm::Docs;
-// FirebaseApp Network_comm::app;
-// AsyncResult Network_comm::aResult_no_callback;
-// WiFiClientSecure Network_comm::ssl_client;
-// Firestore::CollectionGroups::Indexes Network_comm::indexes;
+Firestore::Documents Docs;
+AsyncResult aResult_no_callback;
 
-// IFTTT data
-String eventNAME = "new_mail";
-String webhooksKEY = "bk-rNjIlmxawG-VkvLWg9K";
-const int httpsPort = 443;
-String url = "https://maker.ifttt.com/trigger/" + eventNAME + "/with/key/" + webhooksKEY;
-
-static Network_comm* instance_c = NULL;
+int count = 1;
+static Fire* instance = NULL;
 
 
-Network_comm::Network_comm() {
-  instance_c = this;
+Fire::Fire() {
+  instance = this;
 }
 
-void Network_comm::initWiFi() {
+
+void Fire::initWiFi() {
   WiFi.disconnect();
   WiFi.mode(WIFI_STA);
 
-#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
-  multi.addAP(WIFI_SSID, WIFI_PASSWORD);
-  multi.run();
-#else
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-#endif
+
 
   Serial.print("Connecting to Wi-Fi");
   unsigned long ms = millis();
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(300);
-#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
-    if (millis() - ms > 10000)
-      break;
-#endif
   }
   Serial.println();
   Serial.print("Connected with IP: ");
@@ -71,30 +48,32 @@ void Network_comm::initWiFi() {
   Serial.println();
 }
 
-void Network_comm::firebaseInit() {
-  // Firebase.printf("Firebase Client v%s\n", FIREBASE_CLIENT_VERSION);
+void Fire::firebaseInit() {
+  Firebase.printf("Firebase Client v%s\n", FIREBASE_CLIENT_VERSION);
 
-  // initializeApp(aClient, app, getAuth(user_auth), aResult_no_callback);
-  // ssl_client.setInsecure();
+  ssl_client.setInsecure();
 
+  initializeApp(aClient, app, getAuth(sa_auth), aResult_no_callback);
 
-  // app.getApp<Firestore::Documents>(Docs);
+  authHandler();
+
+  app.getApp<Firestore::Documents>(Docs);
+
+  aClient.setAsyncResult(aResult_no_callback);
+
+  Serial.println("Seccessfully init firebase");
+}
+bool Fire::firebaseReady() {
+  return app.ready();
+}
+void Fire::loopElements() {
+
+  authHandler();
+
+  Docs.loop();
 }
 
-void Network_comm::loopElements() {
-  // JWT.loop(app.getAuth());
-
-  // app.loop();
-
-  // Docs.loop();
-
-}
-
-bool Network_comm::firebaseReady() {
-  // return app.ready();
-}
-
-std::vector<String> Network_comm::getBulbs(String location, String room, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient) {
+std::vector<String> Fire::getBulbs(String location, String room) {
   FirebaseJsonData bulb;
   int count = 1;
   int index;
@@ -152,27 +131,31 @@ std::vector<String> Network_comm::getBulbs(String location, String room, Firesto
   String documentPath = "/"; // Query from all collections under root
 
   // You can set the content of queryOptions object directly with queryOptions.setContent("your content")
+  // Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback); // That was for async
+  String payload = Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions);
 
-  Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback);
   queryOptions.clear();
 
-  if (aResult_no_callback.available())
+  if (payload.length() != 0)
   {
-    FirebaseJson resultJSON(aResult_no_callback.c_str());
+    Serial.println("Calling successful");
+    FirebaseJson resultJSON(payload);
     while (resultJSON.get(bulb, "[0]/document/fields/IP/mapValue/fields/" + mask + "/stringValue")) {
       bulbs.push_back(bulb.to<String>());
       mask.replace(mask.substring(mask.indexOf("_") + 1), String(++count));
     }
     return bulbs;
   }
-  else if (aResult_no_callback.isError()) {
-    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
+  else {
+    printError(aClient.lastError().code(), aClient.lastError().message());
     return bulbs;
   }
 
 }
 
-double Network_comm::getTemperatureData(String location, String room, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient) {
+double Fire::getTemperatureData(String location, String room) {
+  /*Query to get the actual wanted temperature in the office*/
+
   FirebaseJsonData resultTemp;
   StructuredQuery query;
 
@@ -235,24 +218,30 @@ double Network_comm::getTemperatureData(String location, String room, Firestore:
   String documentPath = "/"; // Query from all collections under root
 
   // You can set the content of queryOptions object directly with queryOptions.setContent("your content")
+  Serial.println("now comes the query");
 
-  Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback);
+  // while(aResult_no_callback.isError()) Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback);
+  String payload = Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions);
+
   queryOptions.clear();
-  if (aResult_no_callback.available())
+
+  if (payload.length() != 0)
   {
-    Serial.printf("ok temperature\n%s\n\n", aResult_no_callback.c_str());
-    FirebaseJson resultJSON(aResult_no_callback.c_str());
+    Serial.printf("ok temperature\n%s\n\n", payload);
+    FirebaseJson resultJSON(payload);
     resultJSON.get(resultTemp, "[0]/document/fields/val/doubleValue/");
     if (resultTemp.to<double>() == 0.0) resultJSON.get(resultTemp, "[0]/document/fields/val/integerValue/");
     return resultTemp.to<double>();
   }
-  else if (aResult_no_callback.isError()) {
-    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
+  else {
+    printError(aClient.lastError().code(), aClient.lastError().message());
     return resultTemp.to<double>();
   }
+ 
 }
 
-std::vector<double> Network_comm::getTransitionFunctionData(String location, String room, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient) {
+std::vector<double> Fire::getTransitionFunctionData(String location, String room) {
+  /*Query to get the transitionfunction for the bulbs*/
 
   // Variable definition
   FirebaseJsonData resultData;
@@ -324,13 +313,17 @@ std::vector<double> Network_comm::getTransitionFunctionData(String location, Str
 
   // You can set the content of queryOptions object directly with queryOptions.setContent("your content")
 
-  Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback);
+  // Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions, aResult_no_callback);
+
+  String payload = Docs.runQuery(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, queryOptions);
+
   queryOptions.clear();
 
-  if (aResult_no_callback.available())
+  if (payload.length() != 0)
   {
-    Serial.printf("ok transition\n%s\n\n", aResult_no_callback.c_str());
-    FirebaseJson resultJSON(aResult_no_callback.c_str());
+    Serial.println("Calling successful");
+    // Serial.printf("ok transition\n%s\n\n", payload);
+    FirebaseJson resultJSON(payload);
 
     resultJSON.get(resultData, "[0]/document/fields/zero/doubleValue/");
     resultJSON.get(resultData, "[0]/document/fields/zero/integerValue/");
@@ -350,14 +343,15 @@ std::vector<double> Network_comm::getTransitionFunctionData(String location, Str
 
     return transitionData;
   }
-  else if (aResult_no_callback.isError()) {
-    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
+  else {
+    printError(aClient.lastError().code(), aClient.lastError().message());
     return transitionData;
   }
 
 }
 
-bool Network_comm::writeTemperatureData(double temp, String location, String room, String ts, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient) {  // TODO: implement for the new DB
+bool Fire::writeTemperatureData(double temp, String location, String room, String ts) {  // TODO: implement for the new DB
+  /*Write the actual measured temperature*/
 
   ts.remove(ts.length() - 5, 5);
   ts += "Z";
@@ -383,19 +377,21 @@ bool Network_comm::writeTemperatureData(double temp, String location, String roo
 
   Serial.println("Create document... ");
 
-  Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc, aResult_no_callback);
-  if (aResult_no_callback.available())
+  String payload = Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc);
+  
+  if (aClient.lastError().code() == 0)
   {
-    Firebase.printf("task: %s, payload: %s\n", aResult_no_callback.uid().c_str(), aResult_no_callback.c_str());
+    Serial.println(payload);
     return 1;
   }
   else {
-    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
+    printError(aClient.lastError().code(), aClient.lastError().message());
     return 0;
   }
 }
 
-bool Network_comm::writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient) {  
+bool Fire::writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts) {  
+  /*Write the actual setted bulb state*/
 
   ts.remove(ts.length() - 5, 5);
   ts += "Z";
@@ -425,26 +421,28 @@ bool Network_comm::writeBulbState(String IP, int hue, int sat, int rgb, int ct, 
 
   Serial.println("Create document... ");
 
-  Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc, aResult_no_callback);
-  if (aResult_no_callback.available())
-  {    
-    Firebase.printf("task: %s, payload: %s\n", aResult_no_callback.uid().c_str(), aResult_no_callback.c_str());
+  String payload = Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc);
+  
+  if (aClient.lastError().code() == 0)
+  {
+    Serial.println(payload);
     return 1;
   }
   else {
-    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
+    printError(aClient.lastError().code(), aClient.lastError().message());
     return 0;
   }
 }
 
-bool Network_comm::setModifiedThermostatTemperature(double temp, String location, String room, String ts, Firestore::Documents Docs, AsyncResult aResult_no_callback, AsyncClient aClient) {  // TODO: implement for the new DB
+bool Fire::setModifiedThermostatTemperature(double temp, String location, String room) {  // TODO: implement for the new DB
+  /*Write the modified temperature(taht's differs from the ones that setted)*/
 
   ts.remove(ts.length() - 5, 5);
   ts += "Z";
 
   Values::TimestampValue tsV(ts);
 
-  String documentPath = "temperature/set_modified_thermostat_temperature_" + String(tsV.c_str());
+  String documentPath = "test_collection/set_modified_thermostat_temperature_" + String(++count);
 
   Values::DoubleValue temperature(temp);
   Values::StringValue typeString("actual_temperature");
@@ -456,56 +454,22 @@ bool Network_comm::setModifiedThermostatTemperature(double temp, String location
   doc_path += "/databases/(default)/documents/coll_id/doc_id"; // coll_id and doc_id are your collection id and document id
 
   Document<Values::Value> doc("value", Values::Value(temperature));
-  doc.add("ts", Values::Value(tsV)).add("type", Values::Value(typeString)).add("room", Values::Value(roomString));
+  doc.add("type", Values::Value(typeString)).add("room", Values::Value(roomString));
   doc.add("location", Values::Value(locationString));
 
   // The value of Values::xxxValue, Values::Value and Document can be printed on Serial.
 
   Serial.println("Create document... ");
 
-  Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc, aResult_no_callback);
-  if (aResult_no_callback.available())
+  String payload = Docs.createDocument(aClient, Firestore::Parent(FIREBASE_PROJECT_ID), documentPath, DocumentMask(), doc);
+  
+  if (aClient.lastError().code() == 0)
   {
-    Firebase.printf("task: %s, payload: %s\n", aResult_no_callback.uid().c_str(), aResult_no_callback.c_str());
+    Serial.println(payload);
     return 1;
   }
   else {
-    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult_no_callback.uid().c_str(), aResult_no_callback.error().message().c_str(), aResult_no_callback.error().code());
-    return 0;
-  }
-}
-
-int Network_comm::postWebhooks(String value1) {
-
-  if (WiFi.status() == WL_CONNECTED) {  //Check WiFi connection status
-    HTTPClient http;
-
-    String url_out = url + "?value1=" + value1;
-    Serial.print("url: ");
-    Serial.println(url_out);
-
-    http.begin(url_out);                   //Specify destination for HTTP request
-    int httpResponseCode = http.POST("");  //Send the actual POST request
-
-    if (httpResponseCode > 0) {
-
-      String response = http.getString();  //Get the response to the request
-
-      Serial.println(httpResponseCode);  //Print return code
-      Serial.println(response);
-      return httpResponseCode;
-
-    } else {
-
-      Serial.print("Error on sending POST: ");
-      Serial.println(httpResponseCode);
-      return httpResponseCode;
-    }
-
-    http.end();  //Free resources
-
-  } else {
-    Serial.println("Error in WiFi connection");
+    printError(aClient.lastError().code(), aClient.lastError().message());
     return 0;
   }
 }
@@ -513,17 +477,59 @@ int Network_comm::postWebhooks(String value1) {
 void timeStatusCB(uint32_t &ts)
 {
 #if defined(ESP8266) || defined(ESP32) || defined(CORE_ARDUINO_PICO)
-    if (time(nullptr) < FIREBASE_DEFAULT_TS)
-    {
+  if (time(nullptr) < FIREBASE_DEFAULT_TS)
+  {
 
-        configTime(3 * 3600, 0, "pool.ntp.org");
-        while (time(nullptr) < FIREBASE_DEFAULT_TS)
-        {
-            delay(100);
-        }
-    }
-    ts = time(nullptr);
+  configTime(3 * 3600, 0, "pool.ntp.org");
+  while (time(nullptr) < FIREBASE_DEFAULT_TS)
+  {
+    delay(100);
+  }
+  }
+  ts = time(nullptr);
 #elif __has_include(<WiFiNINA.h>) || __has_include(<WiFi101.h>)
-    ts = WiFi.getTime();
+  ts = WiFi.getTime();
 #endif
+}
+
+void authHandler()
+{
+  // Blocking authentication handler with timeout
+  unsigned long ms = millis();
+  while (app.isInitialized() && !app.ready() && millis() - ms < 120 * 1000)
+  {
+    // The JWT token processor required for ServiceAuth and CustomAuth authentications.
+    // JWT is a static object of JWTClass and it's not thread safe.
+    // In multi-threaded operations (multi-FirebaseApp), you have to define JWTClass for each FirebaseApp,
+    // and set it to the FirebaseApp via FirebaseApp::setJWTProcessor(<JWTClass>), before calling initializeApp.
+    JWT.loop(app.getAuth());
+    printResult(aResult_no_callback);
+  }
+}
+void printResult(AsyncResult &aResult)
+{
+  if (aResult.isEvent())
+  {
+    Firebase.printf("Event task: %s, msg: %s, code: %d\n", aResult.uid().c_str(), aResult.appEvent().message().c_str(), aResult.appEvent().code());
+  }
+
+  if (aResult.isDebug())
+  {
+    Firebase.printf("Debug task: %s, msg: %s\n", aResult.uid().c_str(), aResult.debug().c_str());
+  }
+
+  if (aResult.isError())
+  {
+    Firebase.printf("Error task: %s, msg: %s, code: %d\n", aResult.uid().c_str(), aResult.error().message().c_str(), aResult.error().code());
+  }
+
+  if (aResult.available())
+  {
+    Firebase.printf("task: %s, payload: %s\n", aResult.uid().c_str(), aResult.c_str());
+  }
+}
+
+void printError(int code, const String &msg)
+{
+  Firebase.printf("Error, msg: %s, code: %d\n", msg.c_str(), code);
 }
