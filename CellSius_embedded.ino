@@ -8,6 +8,7 @@
 #include <ArduinoJson.h>
 #include <WiFiClientSecure.h>
 #include <FirebaseClient.h>
+#include "ThermoComm.h"
 
 // I2C communication with MCP9809
 #define SDA_0 18
@@ -29,8 +30,8 @@ std::vector<Yeelight*> bulbs;
 std::vector<String> IPs;
 std::vector<double> transition_data;
 
-// Network variables
-// Network_comm* network = new Network_comm();
+// Communication variables
+ThermoComm *thermo = new ThermoComm();
 Fire *fire_work = new Fire();
 
 unsigned long data_millis = 0;
@@ -56,6 +57,11 @@ void setup() {
   // init firebase
   fire_work->firebaseInit();
 
+  //Thermostat authentication and initialization params
+  thermo->init();
+  thermo->auth();
+
+  // Firebase auth elements
   fire_work->loopElements();
 
   // get bulbs for the actual room in the actual location
@@ -132,6 +138,7 @@ void loop() {
         temp = set_thermostat_temp;
       }
       Serial.print("modifying temp: ");
+      thermo->setTemp(temp);
       Serial.println(fire_work->setModifiedThermostatTemperature(temp, location, room, ts));
     }
     for (Yeelight* bulb : bulbs) {
