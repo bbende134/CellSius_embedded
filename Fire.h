@@ -35,10 +35,10 @@ public:
 
   std::vector<String> getBulbs(String location, String room);
   double getTemperatureData(String location, String room);
-  bool setModifiedThermostatTemperature(double temp, String location, String room);
+  bool setModifiedThermostatTemperature(double temp, String location, String room, String ts);
   bool writeTemperatureData(double temp, String location, String room, String ts);
   std::vector<double> getTransitionFunctionData(String location, String room);
-  bool Fire::writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts); 
+  bool writeBulbState(String IP, int hue, int sat, int rgb, int ct, String location, String room, String ts); 
 
   // TODO: implement for the new DB
 

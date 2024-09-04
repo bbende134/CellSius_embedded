@@ -20,7 +20,6 @@ Firestore::CollectionGroups::Indexes indexes;
 Firestore::Documents Docs;
 AsyncResult aResult_no_callback;
 
-int count = 1;
 static Fire* instance = NULL;
 
 
@@ -434,7 +433,7 @@ bool Fire::writeBulbState(String IP, int hue, int sat, int rgb, int ct, String l
   }
 }
 
-bool Fire::setModifiedThermostatTemperature(double temp, String location, String room) {  // TODO: implement for the new DB
+bool Fire::setModifiedThermostatTemperature(double temp, String location, String room, String ts) {  // TODO: implement for the new DB
   /*Write the modified temperature(taht's differs from the ones that setted)*/
 
   ts.remove(ts.length() - 5, 5);
@@ -442,7 +441,7 @@ bool Fire::setModifiedThermostatTemperature(double temp, String location, String
 
   Values::TimestampValue tsV(ts);
 
-  String documentPath = "test_collection/set_modified_thermostat_temperature_" + String(++count);
+  String documentPath = "temperature/set_modified_thermostat_temperature_" + String(tsV.c_str());
 
   Values::DoubleValue temperature(temp);
   Values::StringValue typeString("actual_temperature");
