@@ -1,14 +1,13 @@
-
 #include <Arduino.h>
 #include <math.h>
 #include <ESPDateTime.h>
-#include "Adafruit_MCP9808.h"
-#include "Fire.h"
-#include "yeelight.h"
 #include <ArduinoJson.h>
 #include <WiFiClientSecure.h>
 #include <FirebaseClient.h>
 #include "ThermoComm.h"
+#include "Adafruit_MCP9808.h"
+#include "Fire.h"
+#include "yeelight.h"
 
 // I2C communication with MCP9809
 #define SDA_0 18
@@ -40,7 +39,7 @@ String ts;
 
 double old_temp = 0.0;
 
-int bulb_trans_time = 10000;
+int bulb_trans_time = 30000;
 
 // bool taskCompleted = false;
 
@@ -137,12 +136,15 @@ void loop() {
       } else {
         temp = set_thermostat_temp;
       }
-      Serial.print("modifying temp: ");
-      thermo->setTemp(temp);
-      Serial.println(fire_work->setModifiedThermostatTemperature(temp, location, room, ts));
+      Serial.print("modifying temp to: ");
+      Serial.println(temp);
+      if (temp!=0.0) {
+        thermo->setTemp(temp); // Setting the temperature for the thermostat
+        Serial.println(fire_work->setModifiedThermostatTemperature(temp, location, room, ts));
+      }
+      
     }
-    for (Yeelight* bulb : bulbs) {
-      // Serial.println("getIPs ------- : " + bulb->getIP());
+    for (Yeelight* bulb : bulbs) { // Change the lights of the bulbs that are in the same room
       Serial.println(
         bulb->setColorTemp(
           transferFunction(
@@ -155,7 +157,7 @@ void loop() {
           bulb_trans_time));
     }
     data_millis = millis();
-    Serial.println("Temperature changeing over");
+    Serial.println("Temperature changing over");
     for (Yeelight* bulb : bulbs) {
       deserializeJson(jsonBuffer, bulb->sendCommand("get_prop", "[\"hue\", \"sat\", \"rgb\", \"ct\"]"));
       JsonObject root = jsonBuffer.as<JsonObject>();

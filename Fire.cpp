@@ -135,7 +135,7 @@ std::vector<String> Fire::getBulbs(String location, String room) {
 
   queryOptions.clear();
 
-  if (payload.length() != 0)
+  if (aClient.lastError().code() == 0)
   {
     Serial.println("Calling successful");
     FirebaseJson resultJSON(payload);
@@ -224,7 +224,7 @@ double Fire::getTemperatureData(String location, String room) {
 
   queryOptions.clear();
 
-  if (payload.length() != 0)
+  if (aClient.lastError().code() == 0)
   {
     Serial.printf("ok temperature\n%s\n\n", payload);
     FirebaseJson resultJSON(payload);
@@ -318,7 +318,7 @@ std::vector<double> Fire::getTransitionFunctionData(String location, String room
 
   queryOptions.clear();
 
-  if (payload.length() != 0)
+  if (aClient.lastError().code() == 0)
   {
     Serial.println("Calling successful");
     // Serial.printf("ok transition\n%s\n\n", payload);
@@ -380,7 +380,7 @@ bool Fire::writeTemperatureData(double temp, String location, String room, Strin
   
   if (aClient.lastError().code() == 0)
   {
-    Serial.println(payload);
+    // Serial.println(payload);
     return 1;
   }
   else {
@@ -424,7 +424,7 @@ bool Fire::writeBulbState(String IP, int hue, int sat, int rgb, int ct, String l
   
   if (aClient.lastError().code() == 0)
   {
-    Serial.println(payload);
+    // Serial.println(payload);
     return 1;
   }
   else {
@@ -464,7 +464,7 @@ bool Fire::setModifiedThermostatTemperature(double temp, String location, String
   
   if (aClient.lastError().code() == 0)
   {
-    Serial.println(payload);
+    // Serial.println(payload);
     return 1;
   }
   else {
